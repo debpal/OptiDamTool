@@ -4,6 +4,7 @@
 | --- | --- |
 | **PyPI**| ![PyPI - Version](https://img.shields.io/pypi/v/OptiDamTool) ![PyPI - Status](https://img.shields.io/pypi/status/OptiDamTool) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/OptiDamTool) ![PyPI - Wheel](https://img.shields.io/pypi/wheel/OptiDamTool) |
 | **GitHub** | ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/debpal/OptiDamTool) ![GitHub last commit](https://img.shields.io/github/last-commit/debpal/OptiDamTool) [![flake8](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml) [![mypy](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml) [![pytest](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml) |
+| **Codecov** | [![codecov](https://codecov.io/gh/debpal/OptiDamTool/graph/badge.svg?token=PJOAIRHEW6)](https://codecov.io/gh/debpal/OptiDamTool) |
 | **Read** _the_ **Docs** | ![Read the Docs (version)](https://img.shields.io/readthedocs/OptiDamTool/latest) |
 | **License** | ![GitHub License](https://img.shields.io/github/license/debpal/OptiDamTool) |
 
