@@ -39,7 +39,7 @@ keywords = [
 
 [project.urls]
 "Homepage" = "https://github.com/debpal/OptiDamTool"
-"Documentation" = "https://optidamtool.readthedocs.io/"
+"Documentation" = "https://optidamtool.readthedocs.io/en/latest/"
 
 [tool.setuptools.dynamic]
 version = {attr = "OptiDamTool.__version__"}
