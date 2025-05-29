@@ -12,8 +12,8 @@ class WatemSedem:
     ) -> list[str]:
 
         '''
-        Generates `stream files <https://watem-sedem.github.io/watem-sedem/input.html>`_  
-        required to run the WaTEM/SEDEM model with the extension  
+        Generates `stream files <https://watem-sedem.github.io/watem-sedem/input.html>`_
+        required to run the WaTEM/SEDEM model with the extension
         **output per river segment = 1**.
 
         Parameters

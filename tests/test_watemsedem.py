@@ -18,3 +18,8 @@ def test_dem_to_stream(
     )
 
     assert output == ['dem.tif', 'folder']
+
+
+def test_github():
+
+    assert str(1) == '1'
