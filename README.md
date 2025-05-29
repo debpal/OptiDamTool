@@ -23,7 +23,7 @@ A brief example of how to start:
 
 ## Documentation
 
-For detailed information, see the [documentation](http://optidamtool.readthedocs.io/).
+For detailed information, see the [documentation](https://optidamtool.readthedocs.io/).
 
 ## Support
 
