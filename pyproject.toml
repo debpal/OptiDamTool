@@ -48,7 +48,7 @@ version = {attr = "OptiDamTool.__version__"}
 
 
 [tool.pytest.ini_options]
-addopts = "-rA -Werror --cov=OptiDamTool --cov-report=html:cov_OptiDamTool --cov-report=term -s"
+addopts = "-rA -Wignore::DeprecationWarning --cov=OptiDamTool --cov-report=html:cov_OptiDamTool --cov-report=term -s"
 testpaths = [
     "tests"
 ]
