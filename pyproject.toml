@@ -6,11 +6,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "OptiDamTool"
 dynamic = ["version"]
-description = ""
+description = "A Python package for analytics in dam operations."
 authors = [
   { name="Debasish Pal", email="bestdebasish@gmail.com" },
 ]
-dependencies = []
+dependencies = [
+    "GeoAnalyze"
+]
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
