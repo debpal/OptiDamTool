@@ -8,7 +8,7 @@ Welcome to OptiDamTool's documentation!
    
    introduction
    installation
-   quickstart
+   userguide
    modules
    changelog
 
