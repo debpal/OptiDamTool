@@ -21,7 +21,7 @@ The following classes are included in the package:
 
 ..
 
-- :class:`OptiDamTool.Network`: Offers methods for establishing network connectivity between dams based on stream networks and hydrological flow paths.
+- :class:`OptiDamTool.Network`: Provides methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network.
 
 
 
