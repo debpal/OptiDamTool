@@ -23,7 +23,7 @@ The following classes are included in the package:
 [WaTEM/SEDEM](https://github.com/watem-sedem) model, which predicts soil erosion, sediment transport capacity, and sediment delivery to stream networks at a watershed scale. While no methods have been implemented yet, development is currently underway.
 
 
-- `OptiDamTool.Network`: Offers methods for establishing network connectivity between dams based on stream networks and hydrological flow paths.
+- `OptiDamTool.Network`: Provides methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network.
 
 
 ## Features
