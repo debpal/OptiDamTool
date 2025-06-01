@@ -20,8 +20,6 @@ Version 0.0.2
     * Test Coverage with **Codecov** to monitor and report test coverage.
     * Automatic documentation builds on **Read the Docs**.
 
-* **Development status:** Upgraded from Planning to Alpha.
-
 
 Version 0.0.1
 ---------------
