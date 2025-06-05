@@ -1,7 +1,5 @@
 import GeoAnalyze
 import pandas
-import tempfile
-import os
 
 
 class Network:
@@ -58,13 +56,12 @@ class Network:
             raise Exception('Duplicate stream identifiers found in the input dam list.')
 
         # temporary directory
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # connectivity from upstream to downstream
-            connect_dict = GeoAnalyze.Stream().connectivity_upstream_to_downstream(
-                stream_file=stream_file,
-                stream_col=stream_col,
-                json_file=os.path.join(tmp_dir, 'connectivity_upstream_to_downstream.json')
-            )
+        # with tempfile.TemporaryDirectory() as tmp_dir:
+        # connectivity from upstream to downstream
+        connect_dict = GeoAnalyze.Stream()._connectivity_upstream_to_downstream(
+            stream_file=stream_file,
+            stream_col=stream_col
+        )
 
         # sort stream identifiers for dams
         dam_sorted = sorted(dam_list)
