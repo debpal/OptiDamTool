@@ -10,30 +10,24 @@
 | **License** | ![GitHub License](https://img.shields.io/github/license/debpal/OptiDamTool) |
 
 
-`OptiDamTool` is a Python package designed for analytics and decision-making in dam operations and water resources management. Conceptualized and released on May 29, 2025, the package offers tools for modeling and analyzing hydrological flow across a network of connected dams.
+`OptiDamTool` is a Python package designed for analytics and decision-making in dam management. Conceptualized and released on May 29, 2025, the package offers tools for modeling and analyzing hydrological flow across a network of connected dams.
 
 
-Leveraging functionalities from the open-source [GeoAnalyze](https://github.com/debpal/GeoAnalyze) package, `OptiDamTool` provides classes that help users prepare inputs for simulating water erosion and sediment transport, and support decision-making in dam network deployment for environmental sustainability.
+Leveraging functionalities from the open-source [GeoAnalyze](https://github.com/debpal/GeoAnalyze) package, `OptiDamTool` provides classes that that assist users in preparing inputs for simulating water erosion and sediment transport, and supports decision-making in dam network deployment aimed at environmental sustainability.
 
 ## Classes
 
-The following classes are included in the package:
+### `OptiDamTool.WatemSedem` 
+Provides methods to prepare inputs for simulating the 
+[WaTEM/SEDEM](https://github.com/watem-sedem) model, which predicts soil erosion, sediment transport capacity, and sediment delivery to stream networks at the watershed scale.  This class currently provides the following feature:
 
-- `OptiDamTool.WatemSedem`: Provides methods to prepare inputs for the
-[WaTEM/SEDEM](https://github.com/watem-sedem) model, which predicts soil erosion, sediment transport capacity, and sediment delivery to stream networks at a watershed scale. While no methods have been implemented yet, development is currently underway.
-
-
-- `OptiDamTool.Network`: Provides methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network.
+* Converts Digital Elevation Model (DEM) data into the stream files required for the WaTEM/SEDEM model, with the `river routing = 1` extension enabled.
 
 
-## Features
+### `OptiDamTool.Network` 
+Offers methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network. This class currently provides the following feature:
 
-The classes provide the following features:
-
-
-### *Dam Network*
-
-- Identification of connectivity between adjacent upstream and downstream dams
+  * Identifies connectivity between adjacent upstream and downstream dams.
 
 
 ## Easy Installation
@@ -50,6 +44,7 @@ A brief example of how to start:
 
 ```python
 >>> import OptiDamTool
+>>> watemsedem = OptiDamTool.WatemSedem()
 >>> network = OptiDamTool.Network()
 ```
 
