@@ -49,4 +49,4 @@ def test_dem_to_stream(
 
 def test_github():
 
-    assert str(1) == '1'
+    assert str(2) == '2'
