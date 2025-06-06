@@ -8,30 +8,26 @@ Conceptualized and released on May 29, 2025, the package offers tools for modeli
 
 
 Leveraging functionalities from the open-source `GeoAnalyze <https://github.com/debpal/GeoAnalyze>`_ package, :mod:`OptiDamTool` provides classes
-that help users prepare inputs for simulating water erosion and sediment transport, and support decision-making in dam network deployment for environmental sustainability.
+that that assist users in preparing inputs for simulating water erosion and sediment transport,
+and supports decision-making in dam network deployment aimed at environmental sustainability.
 
 
 Classes
 ----------
 
+:class:`OptiDamTool.WatemSedem`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following classes are included in the package:
+Provides methods to prepare inputs for simulating the `WaTEM/SEDEM <https://github.com/watem-sedem>`_ model, which predicts soil erosion, sediment transport capacity, and sediment delivery to stream networks at the watershed scale. This class currently provides the following feature:
 
-- :class:`OptiDamTool.WatemSedem`: Provides methods to prepare inputs for the `WaTEM/SEDEM <https://github.com/watem-sedem>`_ model, which predicts soil erosion, sediment transport capacity, and sediment delivery to stream networks at a watershed scale. While no methods have been implemented yet, development is currently underway.
-
-..
-
-- :class:`OptiDamTool.Network`: Provides methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network.
+* Converts Digital Elevation Model (DEM) data into the stream files required for the WaTEM/SEDEM model, with the ``river routing = 1`` extension enabled.
 
 
+:class:`OptiDamTool.Network`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Features
----------------------
-The classes provide the following features:
+Offers methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network. This class currently provides the following feature:
 
+- Identifies connectivity between adjacent upstream and downstream dams.
 
-*Dam Network*
-^^^^^^^^^^^^^^^^^^
-
-- Identification of connectivity between adjacent upstream and downstream dams
 
