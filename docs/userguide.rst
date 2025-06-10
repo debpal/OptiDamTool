@@ -57,17 +57,43 @@ In these dictionaries, a value of -1 indicates no downstream connectivity, while
     # adjacent downstream connectivity
     network.connectivity_adjacent_downstream(
         stream_file=r"C:\users\username\data\stream.shp",
-        stream_column='ws_id',
+        stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
     
     # adjacent upstream connectivity
     network.connectivity_adjacent_downstream(
         stream_file=r"C:\users\username\data\stream.shp",
-        stream_column='ws_id',
+        stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
-   
     
+    
+Effective Drainage Area of Dams
+-----------------------------------------
+
+When working with a dam system within a stream network, the effective upstream drainage areas
+for each dam are dynamically influenced by their specific locations. The following code demonstrates
+how to calculate these areas and generate both a dictionary of values and a polygon shapefile representing the upstream drainage areas.
+
+
+.. code-block:: python
+    
+    # dictionary of dams' effective upstream drainage area
+    network.network.effective_upstream_drainage_area(
+        stream_file=r"C:\users\username\data\stream.shp",
+        stream_col='ws_id',
+        info_file=r"C:\users\username\data\stream_information.txt"
+        dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
+    )    
+    
+    # GeoDataFrame of dams' effective upstream drainage polygons
+    watemsedem.dam_effective_drainage_area(
+        flwdir_file=r"C:\users\username\flwdir.shp",
+        location_file=r"C:\users\username\subbasin_drainage_points.shp",
+        location_col='ws_id',
+        dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1],
+        folder_path=r"C:\users\username\output_folder"
+    )    
     
  
