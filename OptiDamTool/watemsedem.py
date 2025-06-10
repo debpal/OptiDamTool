@@ -1,4 +1,6 @@
 import GeoAnalyze
+import geopandas
+import rasterio
 import os
 
 
@@ -18,40 +20,41 @@ class WatemSedem:
     ) -> str:
 
         '''
-        Generates input files required to run the WaTEM/SEDEM model with the extension
-        `river routing = 1 <https://watem-sedem.github.io/watem-sedem/model_extensions.html#riverrouting>`_.
+        Generates all required input and supporting files for running the WaTEM/SEDEM model
+        with the enabled extension `river routing = 1 <https://watem-sedem.github.io/watem-sedem/model_extensions.html#riverrouting>`_.
 
-            .. note::
-                We are assuming the input Digital Elevation Model (DEM) is the exact watershed area,
-                hence the function forces all flow directions toward a single outlet at the lowest pit.
+        This function processes a Digital Elevation Model (DEM) to derive stream networks,
+        flow routing, and supporting shapefiles for analysis. It assumes the DEM covers
+        a single watershed area and enforces flow convergence toward a single outlet
+        at the lowest elevation point. The DEM must use a projected CRS with meter-based units.
 
-        The generated files include:
+        .. note::
+            All valid DEM cells are converted to 1 to compute flow accumulation.
+            Flow direction is forced toward the lowest pit to simulate a unified outlet.
 
-        - `river segment filename <https://watem-sedem.github.io/watem-sedem/input.html#river-segment-filename>`_: ``stream_lines.tif``
-        - `river routing filename <https://watem-sedem.github.io/watem-sedem/input.html#river-routing-filename>`_: ``stream_routing.tif``
-        - `adjectant segments <https://watem-sedem.github.io/watem-sedem/input.html#adjectant-segments>`_: ``stream_adjacent_downstream_connectivity.txt``
-        - `upstream segments <https://watem-sedem.github.io/watem-sedem/input.html#upstream-segments>`_: ``stream_all_upstream_connectivity.txt``
+        The function generates the following files in the specified output directory:
 
-        Additionally, this function generates shapefiles for:
+        - **stream_lines.tif**: Raster of river segments.
+        - **stream_routing.tif**: Raster of river routing.
+        - **stream_adjacent_downstream_connectivity.txt**: Text file of adjacent downstream segments.
+        - **stream_all_upstream_connectivity.txt**: Text file of upstream segment connectivity.
 
-        - Streams: ``stream_lines.shp``
-        - Subbasins: ``subbasins.shp``
-        - Subbasin drainage points: ``subbasin_drainage_points.shp``
+        Additional shapefiles (not required for WaTEM/SEDEM) are created for detailed analysis:
 
-        All shapefiles include a common identifier column, ``flw_col``, to facilitate cross-referencing.
-        While these files are not required to run the WaTEM/SEDEM model, they provide valuable information
-        for detailed analysis.
+        - **stream_lines.shp**: Contains a column ``ds_id`` which indicates the adjacent downstream segment. A value of -1 means no downstream connectivity.
+        - **subbasins.shp**: Contains a column ``area_m2`` representing the area of each subbasin in square meters.
+        - **subbasin_drainage_points.shp**: Contains a column ``flwacc`` representing the flow accumulation at each drainage point.
 
-        - `subbasins.shp` contains a column ``area_m2`` representing the area of each subbasin.
-        - `subbasin_drainage_points.shp` contains a column ``flwacc`` representing the flow accumulation value at each drainage point.
+        The following additional files are also generated:
 
-        A file ``summary.json`` is also generated, detailing processing time and relevant parameters. All output files
-        are saved to the specified folder.
+        - **stream_information.txt**: Contains a table summarizing the shapefiles, with columns ``flw_col``, ``ds_id``, ``area_m2``,
+          ``flwacc``, and ``cumarea_m2`` (cumulative drainage area).
+        - **summary.json**: Contains a dictionary summarizing the processing time and parameters used.
 
         Parameters
         ----------
         dem_file : str
-            Path to the input DEM (Digital Elevation Model) file.
+            Path to the input DEM file.
 
         flwacc_percent : float
             A value between 0 and 100 representing the percentage of the maximum flow
@@ -61,16 +64,16 @@ class WatemSedem:
             the total number of valid cells.
 
         folder_path : str
-            Path to the directory where output files will be saved.
+            Path to the directory where all output files will be saved.
 
         flw_col : str, optional
-            Name of the identifier column in shapefiles used for cross-referencing.
+            Name of the identifier column used for cross-referencing in shapefiles.
             Default is 'ws_id'.
 
         Returns
         -------
         str
-            A message confirming successful creation of the stream-related output files.
+            Message confirming successful creation of stream-related output files.
         '''
 
         # check existence of folder path
@@ -144,6 +147,9 @@ class WatemSedem:
             link_col='ds_id',
             unlinked_id=-1
         )
+        stream_gdf.to_file(
+            filename=os.path.join(folder_path, 'stream_lines.shp')
+        )
         dl_df = stream_gdf[[flw_col, 'ds_id']]
         dl_df = dl_df[~dl_df['ds_id'].isin([-1])].reset_index(drop=True)
         dl_df.columns = ['from', 'to']
@@ -165,6 +171,31 @@ class WatemSedem:
         ul_df['proportion'] = 1.0
         ul_df.to_csv(
             path_or_buf=os.path.join(folder_path, 'stream_all_upstream_connectivity.txt'),
+            sep='\t',
+            index=False
+        )
+
+        # stream information DataFrame
+        si_df = stream_gdf[[flw_col, 'ds_id']]
+        subbasin_gdf = geopandas.read_file(
+            filename=os.path.join(folder_path, 'subbasins.shp')
+        )
+        si_df = si_df.merge(
+            right=subbasin_gdf[[flw_col, 'area_m2']],
+            on=flw_col
+        )
+        pour_gdf = geopandas.read_file(
+            filename=os.path.join(folder_path, 'subbasin_drainage_points.shp')
+        )
+        si_df = si_df.merge(
+            right=pour_gdf[[flw_col, 'flwacc']],
+            on=flw_col
+        )
+        with rasterio.open(dem_file) as input_dem:
+            dem_res = input_dem.res
+        si_df['cumarea_m2'] = si_df['flwacc'] * dem_res[0] * dem_res[1]
+        si_df.to_csv(
+            path_or_buf=os.path.join(folder_path, 'stream_information.txt'),
             sep='\t',
             index=False
         )
