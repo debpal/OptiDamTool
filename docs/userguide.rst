@@ -49,14 +49,22 @@ The specified stream segment identifiers are used to designate dam deployment lo
 
 A sample stream shapefile is available in the  `data <https://github.com/debpal/OptiDamTool/tree/main/tests/data>`_ directory.
 The following code generates dictionaries representing the adjacent upstream and downstream connectivity of dams based on the stream network.
-Refer to the :meth:`OptiDamTool.Network.connectivity_adjacent` method for more details on the output.
+In these dictionaries, a value of -1 indicates no downstream connectivity, while an empty list indicates no upstream connectivity.
 
 
 .. code-block:: python
-
-    network.connectivity_adjacent(
+    
+    # adjacent downstream connectivity
+    network.connectivity_adjacent_downstream(
         stream_file=r"C:\users\username\data\stream.shp",
-        stream_column='flw_id',
+        stream_column='ws_id',
+        dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
+    )
+    
+    # adjacent upstream connectivity
+    network.connectivity_adjacent_downstream(
+        stream_file=r"C:\users\username\data\stream.shp",
+        stream_column='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
    
