@@ -22,6 +22,7 @@ Provides methods to prepare inputs for simulating the
 [WaTEM/SEDEM](https://github.com/watem-sedem) model, which predicts soil erosion, sediment transport capacity, and sediment delivery to stream networks at the watershed scale.  This class currently provides the following feature:
 
 * Converts Digital Elevation Model (DEM) data into the stream files required for the WaTEM/SEDEM model, with the `river routing = 1` extension enabled.
+* Extends input rasters beyond the model region and fills them with valid values, as WaTEM/SEDEM does not support NoData cells.
 * Generates effective upstream drainage polygons for selected dam locations within a stream network.
 
 
