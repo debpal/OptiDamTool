@@ -4,6 +4,8 @@ import geopandas
 import rasterio
 import rasterio.features
 import os
+import typing
+import tempfile
 
 
 class WatemSedem:
@@ -44,15 +46,22 @@ class WatemSedem:
         Additional raster and shapefiles (not required for WaTEM/SEDEM) are created for detailed analysis:
 
         - **flwdir.tif**: Raster of flow direction.
-        - **stream_lines.shp**: Contains a column ``ds_id`` which indicates the adjacent downstream segment. A value of -1 means no downstream connectivity.
-        - **subbasins.shp**: Contains a column ``area_m2`` representing the area of each subbasin in square meters.
-        - **subbasin_drainage_points.shp**: Contains a column ``flwacc`` representing the flow accumulation at each drainage point.
+        - **stream_lines.shp**: LineString shapeifle contains a column ``ds_id`` that represents the adjacent downstream segment.
+          A value of -1 means no downstream connectivity.
+        - **subbasins.shp**: Polygon shapefile contains a column ``area_m2`` that represents the area of each subbasin in square meters.
+        - **subbasin_drainage_points.shp**: Point shapefile contains a column ``flwacc`` that represents the flow accumulation at each drainage point.
 
         The following additional files are also generated:
 
         - **stream_information.txt**: Contains a table summarizing the shapefiles, with columns ``flw_col``, ``ds_id``, ``area_m2``,
           ``flwacc``, and ``cumarea_m2`` (cumulative drainage area).
         - **summary.json**: Contains a dictionary summarizing the processing time and parameters used.
+
+        .. warning::
+            Some files are generated temporarily during the simulation and will be deleted at the end.
+            Additionally, any generated files will overwrite existing files if they share the same name.
+            It is strongly recommended to use an empty folder as the output directory to prevent accidental deletion
+            or overwriting of important files.
 
         Parameters
         ----------
@@ -223,6 +232,163 @@ class WatemSedem:
         )
 
         output = 'All required files has been generated'
+
+        return output
+
+    def extend_model_region(
+        self,
+        region_file: str,
+        buffer_distance: float,
+        resolution: float,
+        folder_path: str,
+        select_values: typing.Optional[list[float]] = None,
+        dtype: str = 'int16',
+        nodata: float = -9999,
+    ) -> rasterio.profiles.Profile:
+
+        '''
+        Generates a raster that includes a buffer area around the input region raster file.
+        This raster serves as a mask to extend input rasters beyond the model region for use in WaTEM/SEDEM.
+        Since WaTEM/SEDEM does not account for NoData values, at least two pixels outside the model domain
+        must contain valid data. For more details, `click here <https://watem-sedem.github.io/watem-sedem/input.html#dtm-filename>`_.
+
+        The function generates the following files in the specified output directory:
+
+        - **region.shp**: Polygon shapefile of the model region.
+        - **region_buffer.shp**: Polygon shapefile of the model region including the buffer area.
+        - **region_buffer_line.shp**: LineString shapefile of the model region including the buffer area.
+        - **region_buffe.tif**: Raster file of the model region including the buffer area.
+
+        All shapefiles share a common integer column ``bid``, used for cross-referencing.
+        The values in ``bid`` are also used in the output raster file.
+
+        .. warning::
+            Generated files will overwrite any existing files with the same names.
+            It is strongly recommended to use an empty folder as the output directory
+            to prevent accidental overwriting or loss of existing data.
+
+        Parameters
+        ----------
+        region_file : str
+            Path to the input region raster file (e.g., Digital Elevation Model or land cover).
+
+        buffer_distance : float
+            Buffer distance (in meters) to apply around the region boundary.
+
+        resolution : float
+            Spatial resolution (in meters) of the output raster.
+
+        folder_path : str
+            Path to the directory where all output files will be saved.
+
+        select_values : list, optional
+            A list of specific values from the ``bid`` column to include.
+            If None, all values are used. This is useful for excluding
+            small or negligible boundary polygons in **region.shp** after a trial run.
+
+        dtype : str, optional
+            Data type of the output raster. Default is 'int16'.
+
+        nodata : float, optional
+            NoData value to assign to areas not covered by boundary polygons. Default is -9999.
+
+        Returns
+        -------
+        profile
+            A profile containing metadata about the output raster.
+        '''
+
+        # check existence of folder path
+        if not os.path.isdir(folder_path):
+            raise Exception('Input folder path is not valid.')
+
+        # class objects
+        raster = GeoAnalyze.Raster()
+
+        # region boundary GeoDataFrame
+        boundary_gdf = raster.boundary_polygon(
+            raster_file=region_file,
+            shape_file=os.path.join(folder_path, 'region.shp')
+        )
+
+        # saving the buffer GeoDataFrame of boundary region
+        buffer_gdf = boundary_gdf.copy()
+        buffer_gdf.geometry = buffer_gdf.geometry.buffer(buffer_distance)
+        buffer_gdf.to_file(
+            filename=os.path.join(folder_path, 'region_buffer.shp')
+        )
+
+        # buffer line GeoDataFrame of the boundary region
+        GeoAnalyze.Shape().polygons_to_boundary_lines(
+            input_file=os.path.join(folder_path, 'region_buffer.shp'),
+            output_file=os.path.join(folder_path, 'region_buffer_line.shp')
+        )
+
+        # saving boundary buffer mask raster array
+        output = raster.array_from_geometries_without_mask(
+            shape_file=os.path.join(folder_path, 'region_buffer.shp'),
+            value_column='bid',
+            resolution=resolution,
+            output_file=os.path.join(folder_path, 'region_buffer.tif'),
+            select_values=select_values,
+            dtype=dtype,
+            nodata=nodata
+        )
+
+        return output
+
+    def extend_raster_nodata_free(
+        self,
+        input_file: str,
+        fill_value: float,
+        region_file: str,
+        output_file: str
+    ) -> rasterio.profiles.Profile:
+
+        '''
+        Extends the input raster beyond the model region so that
+        the entire output raster contains no NoData values.
+        This is useful for preparing input data for WaTEM/SEDEM,
+        which does not support NoData cells. For more details,
+        see the documentation of :meth:`OptiDamTool.WatemSedem.extend_model_region`.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to the input raster file.
+
+        fill_value : float
+            Value to assign to the extended areas and NoData region.
+
+        region_file : str
+            Path to the region raster file produced by :meth:`OptiDamTool.WatemSedem.extend_model_region`.
+
+        output_file : str
+            Path to save the output raster file.
+
+        Returns
+        -------
+        profile
+            A profile containing metadata about the output raster.
+        '''
+
+        # class objects
+        raster = GeoAnalyze.Raster()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # raster extension to required region
+            raster.extension_to_mask_with_fill_value(
+                input_file=input_file,
+                mask_file=region_file,
+                fill_value=fill_value,
+                output_file=os.path.join(tmp_dir, 'temporary.tif')
+            )
+            # replacing NoData with valid value
+            output = raster.nodata_to_valid_value(
+                input_file=os.path.join(tmp_dir, 'temporary.tif'),
+                valid_value=fill_value,
+                output_file=output_file
+            )
 
         return output
 
