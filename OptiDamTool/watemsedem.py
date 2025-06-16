@@ -235,7 +235,7 @@ class WatemSedem:
 
         return output
 
-    def extend_model_region(
+    def model_region_extension(
         self,
         region_file: str,
         buffer_distance: float,
@@ -337,7 +337,7 @@ class WatemSedem:
 
         return output
 
-    def extend_raster_nodata_free(
+    def raster_extension_without_nodata(
         self,
         input_file: str,
         fill_value: float,
@@ -346,11 +346,9 @@ class WatemSedem:
     ) -> rasterio.profiles.Profile:
 
         '''
-        Extends the input raster beyond the model region so that
-        the entire output raster contains no NoData values.
-        This is useful for preparing input data for WaTEM/SEDEM,
-        which does not support NoData cells. For more details,
-        see the documentation of :meth:`OptiDamTool.WatemSedem.extend_model_region`.
+        Extends the input raster beyond the model region and replace NoData with a valid value.
+        This is useful for preparing input data for WaTEM/SEDEM which does not support NoData cells.
+        For more details, `click here <https://watem-sedem.github.io/watem-sedem/input.html#dtm-filename>`_.
 
         Parameters
         ----------
@@ -361,7 +359,7 @@ class WatemSedem:
             Value to assign to the extended areas and NoData region.
 
         region_file : str
-            Path to the region raster file produced by :meth:`OptiDamTool.WatemSedem.extend_model_region`.
+            Path to the region raster file produced by :meth:`OptiDamTool.WatemSedem.model_region_extension`.
 
         output_file : str
             Path to save the output raster file.
@@ -387,6 +385,65 @@ class WatemSedem:
             output = raster.nodata_to_valid_value(
                 input_file=os.path.join(tmp_dir, 'temporary.tif'),
                 valid_value=fill_value,
+                output_file=output_file
+            )
+
+        return output
+
+    def raster_constant_without_nodata(
+        self,
+        input_file: str,
+        constant_value: float,
+        fill_nodata: float,
+        output_file: str,
+        dtype: typing.Optional[str] = None
+    ) -> rasterio.profiles.Profile:
+
+        '''
+        Creates a constant raster by assigning a specified value to all valid pixels and replacing NoData values with a defined fill value.
+        This is useful for preparing a constant raster, for example the `erosion control factor <https://watem-sedem.github.io/watem-sedem/watem-sedem.html#p-factor>`_,
+        in an efficient way, often required for small regions when running WaTEM/SEDEM.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to the region raster file produced by :meth:`OptiDamTool.WatemSedem.model_region_extension`.
+
+        constant_value : float
+            The constant value to assign to all valid pixels in the output raster.
+
+        fill_nodata : float
+            The value to use in place of NoData pixels in the output raster.
+
+        output_file : str
+            Path to save the output raster file.
+
+        dtype : str, optional
+            Data type of the output raster.
+            If None, the data type of the input raster is retained.
+
+        Returns
+        -------
+        profile
+            A profile containing metadata about the output raster.
+        '''
+
+        # class objects
+        raster = GeoAnalyze.Raster()
+
+        # temporary directory
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # constant raster
+            raster.reclassify_by_constant_value(
+                input_file=input_file,
+                constant_value=constant_value,
+                output_file=os.path.join(tmp_dir, 'temporary.tif'),
+                dtype=dtype
+            )
+            # replacing NoData with valid value
+            output = raster.nodata_to_valid_value(
+                input_file=os.path.join(tmp_dir, 'temporary.tif'),
+                valid_value=fill_nodata,
                 output_file=output_file
             )
 

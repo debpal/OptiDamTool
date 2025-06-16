@@ -1,4 +1,5 @@
 import OptiDamTool
+import rasterio
 import tempfile
 import os
 import json
@@ -47,28 +48,54 @@ def test_watemsedem(
         assert summary_dict['Number of stream segments'] == 33
         assert summary_dict['Number of outlets'] == 1
         # region boundary buffer raster
-        output = watemsedem.extend_model_region(
+        output = watemsedem.model_region_extension(
             region_file=os.path.join(data_folder, 'dem.tif'),
             buffer_distance=1500,
             resolution=30,
             folder_path=tmp_dir
         )
+        assert os.path.exists(os.path.join(tmp_dir, 'region.shp'))
+        assert os.path.exists(os.path.join(tmp_dir, 'region_buffer.shp'))
+        assert os.path.exists(os.path.join(tmp_dir, 'region_buffer_line.shp'))
+        assert os.path.exists(os.path.join(tmp_dir, 'region_buffer.tif'))
         assert output['height'] == 3884
         assert output['width'] == 3517
         assert output['transform'][0] == 30
         assert output['transform'][4] == -30
         # raster extension and NoData conversion
-        output = watemsedem.extend_raster_nodata_free(
+        output = watemsedem.raster_extension_without_nodata(
             input_file=os.path.join(tmp_dir, 'stream_lines.tif'),
             fill_value=0,
             region_file=os.path.join(tmp_dir, 'region_buffer.tif'),
             output_file=os.path.join(tmp_dir, 'stream_buffer.tif')
         )
+        assert os.path.exists(os.path.join(tmp_dir, 'stream_buffer.tif'))
         assert output['dtype'] == 'int16'
         assert output['height'] == 3884
         assert output['width'] == 3517
         assert output['transform'][0] == 30
         assert output['transform'][4] == -30
+        with rasterio.open(os.path.join(tmp_dir, 'stream_buffer.tif')) as input_raster:
+            raster_array = input_raster.read(1)
+            assert -9999 not in raster_array
+        # constant raster and NoData conversion
+        output = watemsedem.raster_constant_without_nodata(
+            input_file=os.path.join(tmp_dir, 'region_buffer.tif'),
+            constant_value=1,
+            fill_nodata=0,
+            output_file=os.path.join(tmp_dir, 'p_buffer.tif')
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'p_buffer.tif'))
+        assert output['dtype'] == 'int16'
+        assert output['height'] == 3884
+        assert output['width'] == 3517
+        assert output['transform'][0] == 30
+        assert output['transform'][4] == -30
+        with rasterio.open(os.path.join(tmp_dir, 'p_buffer.tif')) as input_raster:
+            raster_array = input_raster.read(1)
+            assert -9999 not in raster_array
+            assert 0 in raster_array
+            assert 1 in raster_array
         # dam effective drainage area shapefile
         output = watemsedem.dam_effective_drainage_polygon(
             flwdir_file=os.path.join(tmp_dir, 'flwdir.tif'),
@@ -92,17 +119,17 @@ def test_error_invalid_folder(
         watemsedem.dem_to_stream(
             dem_file='dem.tif',
             flwacc_percent=5,
-            folder_path='output_folder'
+            folder_path='no_folder'
         )
     assert exc_info.value.args[0] == message['error_folder']
 
     # region boundary buffer raster
     with pytest.raises(Exception) as exc_info:
-        watemsedem.extend_model_region(
+        watemsedem.model_region_extension(
             region_file='dem.tif',
             buffer_distance=1500,
             resolution=30,
-            folder_path='output_folder'
+            folder_path='no_folder'
         )
     assert exc_info.value.args[0] == message['error_folder']
 
@@ -113,7 +140,7 @@ def test_error_invalid_folder(
             location_file='subbasin_drainage_points.shp',
             location_col='ws_id',
             dam_list=[1],
-            folder_path='output_folder'
+            folder_path='no_folder'
         )
     assert exc_info.value.args[0] == message['error_folder']
 
