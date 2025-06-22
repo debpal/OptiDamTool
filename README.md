@@ -22,8 +22,11 @@ Provides methods to prepare inputs for simulating the
 [WaTEM/SEDEM](https://github.com/watem-sedem) model, which predicts soil erosion, sediment transport capacity, and sediment delivery to stream networks at the watershed scale.  This class currently provides the following feature:
 
 * Converts Digital Elevation Model (DEM) data into the stream files required for the WaTEM/SEDEM model with the `river routing = 1` extension enabled.
-* Extends input rasters beyond the model region and fills NoData cells with valid values, since WaTEM/SEDEM does not support NoData.
-* Creates constant rasters using the extended model region raster.
+* Extends input rasters beyond the model region and fills NoData cells with valid values, as WaTEM/SEDEM does not support NoData.
+* Performs reprojection, clipping, resolution rescaling, and reclassification of rasters.
+* Processes open-source [Esri](https://livingatlas.arcgis.com/landcover/) land cover rasters.
+* Generates a land management factor raster from land cover data.
+* Computes the product of soil erodibility and rainfall erosivity factors.
 * Generates effective upstream drainage area polygons for selected dam locations within a stream network.
 
 
