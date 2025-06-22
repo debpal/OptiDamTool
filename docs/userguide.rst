@@ -19,7 +19,7 @@ If no errors are raised, the installation is successful.
     network = OptiDamTool.Network()
 
 
-.. _dem_to_stream:
+.. _ref_dem_to_stream:
     
 DEM to Stream 
 -------------------
@@ -34,13 +34,13 @@ A sample Digital Elevation Model (DEM) raster file is available in the
 .. code-block:: python
 
     watemsedem.dem_to_stream(
-        dem_file=r"C:\users\username\data\dem.tif",
+        dem_file=r"C:\users\username\input_data\dem.tif",
         flwacc_percent=1,
         folder_path=r"C:\users\username\output_folder"
     )
     
 
-.. _model_region_extension:
+.. _ref_model_region_extension:
 
 Model Region Extension 
 --------------------------
@@ -52,9 +52,8 @@ A raster that covers the model region, typically the DEM raster, is used to crea
     
     # extended region raster with DEM boundary polygons
     watemsedem.model_region_extension(
-        region_file=r"C:\users\username\data\dem.tif",
-        buffer_distance=1500,
-        resolution=30,
+        dem_file=r"C:\users\username\input_data\dem.tif",
+        buffer_units=50,
         folder_path=r"C:\users\username\output_folder"
     )
     
@@ -62,13 +61,14 @@ A raster that covers the model region, typically the DEM raster, is used to crea
 Raster Extension without NoData Region 
 ------------------------------------------
 
-Using the ``region_buffer.tif`` raster generated in the :ref:`model_region_extension` section,  
-the stream raster produced in the :ref:`dem_to_stream` section is extended, and NoData cells are filled with valid values.
+Using the ``region_buffer.tif`` raster generated in the :ref:`ref_model_region_extension` section,  
+input rasters for WaTEM/SEDEM, such as the stream raster produced in the :ref:`ref_dem_to_stream` section, are spatially extended.
+During this process, NoData areas are replaced with a specified fill value, resulting in a continuous raster suitable for further analysis.
 
 .. code-block:: python
     
-    # stream rater extension with extended model region
-    watemsedem.raster_extension_without_nodata(
+    # stream raster extension with extended model region
+    watemsedem.raster_extension(
         input_file=r"C:\users\username\output_folder\stream_lines.tif",
         fill_value=0,
         region_file=r"C:\users\username\output_folder\region_buffer.tif",
@@ -76,24 +76,103 @@ the stream raster produced in the :ref:`dem_to_stream` section is extended, and 
     )
     
     
-Constant Raster without NoData Region 
+Constant Raster with Extension 
 ------------------------------------------
 
 A constant raster, such as the `erosion control factor <https://watem-sedem.github.io/watem-sedem/watem-sedem.html#p-factor>`_,  
 is required for small regions when running WaTEM/SEDEM.  
-Using the ``region_buffer.tif`` raster generated in the :ref:`model_region_extension` section,  
-a constant raster can be created efficiently as shown below:
+Using the ``region.tif`` and ``region_buffer.tif`` rasters generated in the :ref:`ref_model_region_extension` section,  
+a constant-value raster can be created efficiently, as shown below:
 
 .. code-block:: python
     
     # erosion control factor raster
-    watemsedem.output = watemsedem.raster_constant_without_nodata(
-        input_file=r"C:\users\username\output_folder\region_buffer.tif",
+    watemsedem.raster_constant_extension(
+        input_file=r"C:\users\username\output_folder\region.tif",
         constant_value=1,
-        fill_nodata=0,
-        output_file=r"C:\users\username\output_folder\p_buffer.tif",
+        region_file=r"C:\users\username\output_folder\region_buffer.tif",
+        output_file=r"C:\users\username\output_folder\RUSEL_P_buffer.tif",
+        fill_value=0,
         dtype='float32'
     )
+    
+    
+Raster Spatial Analysis
+-------------------------------
+
+For focused spatial analysis, extracting a specific region from a large raster is often necessary.
+This function clips a raster using a rectangular bounding box derived from the total bounds
+of an input shapefile. If required, the shapefile’s Coordinate Reference System (CRS) is automatically transformed
+to match the CRS of the raster.
+
+
+.. code-block:: python
+    
+    watemsedem.raster_clipping_by_bounding_box(
+        input_file=r"C:\users\username\input_data\land_cover_ESRI.tif",
+        shape_file=r"C:\users\username\output_folder\region_buffer.tif",
+        output_file=r"C:\users\username\output_folder\land_cover_region.tif",
+        dtype='int16'
+    )
+
+After clipping, the output raster must be reprojected, clipped again, and rescaled in resolution
+to align with the model region. The input shapefile's CRS and spatial extent are used
+for reprojection and spatial clipping. A mask raster, which shares the same extent as the shapefile,
+is used to rescale the resolution of the reprojected and clipped raster.
+
+
+.. code-block:: python
+    
+    watemsedem.raster_reproject_clipping_rescaling(
+        input_file=r"C:\users\username\output_folder\land_cover_region.tif",
+        resampling_method='nearest',
+        shape_file=r"C:\users\username\output_folder\region.shp",
+        mask_file=r"C:\users\username\output_folder\region.tif",
+        output_file=r"C:\users\username\output_folder\land_cover_unprocessed.tif"
+    )
+    
+    
+Land Cover Processing
+-------------------------------
+
+To create land cover and management factor rasters required by WaTEM/SEDEM,
+use the following codes and refer to methods :meth:`OptiDamTool.WatemSedem.land_cover_esri`
+and :meth:`OptiDamTool.WatemSedem.land_management_factor` for more details.
+
+.. code-block:: python
+    
+    # land cover raster 
+    watemsedem.land_cover_esri(
+        lc_file=r"C:\users\username\output_folder\land_cover_unprocessed.tif",
+        stream_file=r"C:\users\username\output_folder\stream_lines.shp",
+        folder_path=r"C:\users\username\output_folder"
+    )
+    
+    # land management factor
+    watemsedem.land_cover_esri(
+        lc_file=r"C:\users\username\output_folder\land_cover_unprocessed.tif",
+        stream_file=r"C:\users\username\output_folder\stream_lines.shp",
+        output_file=r"C:\users\username\output_folder\RUSLE_C.tif"
+    )
+    
+    
+Product of Soil Erodibility and Rainfall Erosivity Factors
+--------------------------------------------------------------------
+
+WaTEM/SEDEM uses the product of the Soil Erodibility (K) and Rainfall Erosivity (R) factors
+when these values vary spatially across a large area. The multiplication is normalized by setting
+the value of R to 1 where necessary. Refer to the method :meth:`OptiDamTool.WatemSedem.rusle_kr` for more details.
+
+.. code-block:: python
+    
+    watemsedem.rusle_kr(
+        k_file=r"C:\users\username\input_data\RUSLE_K.tif",
+        r_file=r"C:\users\username\input_data\RUSLE_R.tif",
+        region_file=r"C:\users\username\output_folder\region.tif",
+        output_file=r"C:\users\username\output_folder\RUSLE_KR.tif",
+        k_multiplier=1000
+    )
+
 
     
 Adjacent Connectivity Between Dams
