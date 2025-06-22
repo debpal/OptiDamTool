@@ -804,7 +804,7 @@ class WatemSedem:
         Processes a high-resolution, open-source `Esri land cover <https://livingatlas.arcgis.com/landcover/>`_ raster
         of the model region for WaTEM/SEDEM simulation.
 
-        - **land_cover_percent_Esri.csv**: Contains the input
+        - **land_cover_percent_esri.csv**: Contains the input
           `Esri land cover raster <https://www.arcgis.com/home/item.html?id=cfcb7609de5f478eb7666240902d4d3d>`_ values,
           along with cell counts, percentage counts, cumulative percentages, and class names.
 
@@ -813,7 +813,7 @@ class WatemSedem:
           with stream lines overlaid (using raster value -1). If the cropland class with Esri value 5 is present,
           it is not reclassified here due to its need in further processing.
 
-        - **land_cover_percent_WaTEMSEDEM.csv**: Contains the WaTEM/SEDEM land cover raster values,
+        - **land_cover_percent_watemsedem.csv**: Contains the WaTEM/SEDEM land cover raster values,
           including counts, count percentages, cumulative percentages, and class names.
 
         - **land_cover_extract_cropland.shp**: Polygon shapefile of crop fields extracted from ``land_cover_cropland_unsplit.tif``,

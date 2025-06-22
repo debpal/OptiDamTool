@@ -137,9 +137,9 @@ def test_watemsedem(
             stream_file=os.path.join(tmp_dir, 'stream_lines.shp'),
             folder_path=tmp_dir
         )
-        assert os.path.exists(os.path.join(tmp_dir, 'land_cover_percent_ESRI.csv'))
+        assert os.path.exists(os.path.join(tmp_dir, 'land_cover_percent_esri.csv'))
         assert os.path.exists(os.path.join(tmp_dir, 'land_cover_cropland_unsplit.tif'))
-        assert os.path.exists(os.path.join(tmp_dir, 'land_cover_percent_WaTEMSEDEM.csv'))
+        assert os.path.exists(os.path.join(tmp_dir, 'land_cover_percent_watemsedem.csv'))
         assert os.path.exists(os.path.join(tmp_dir, 'land_cover_extract_cropland.shp'))
         assert os.path.exists(os.path.join(tmp_dir, 'land_cover_cropland_split.tif'))
         assert output == 'Total agricultural lands identified: 1417'
