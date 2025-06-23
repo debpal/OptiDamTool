@@ -18,14 +18,15 @@ Classes
 :class:`OptiDamTool.WatemSedem`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Provides methods to prepare inputs for simulating the `WaTEM/SEDEM <https://github.com/watem-sedem>`_ model, which predicts soil erosion, sediment transport capacity, and sediment delivery to stream networks at the watershed scale. This class currently provides the following feature:
+Provides tools to prepare inputs for the `WaTEM/SEDEM <https://github.com/watem-sedem>`_ model, which simulates soil erosion, sediment transport capacity, and sediment delivery to stream networks at the watershed scale. While this class includes built-in methods for generating most required inputs, it is still recommended to consult the ``GeoAnalyze`` documentation for any geospatial operations not covered by its methods.
 
 * Converts Digital Elevation Model (DEM) data into the stream files required for the WaTEM/SEDEM model with the  ``river routing = 1`` extension enabled.
 * Extends input rasters beyond the model region and fills NoData cells with valid values, as WaTEM/SEDEM does not support NoData.
 * Performs reprojection, clipping, resolution rescaling, and reclassification of rasters.
-* Processes open-source `Esri <https://livingatlas.arcgis.com/landcover/>`_ land cover rasters.
-* Generates a land management factor raster from land cover data.
+* Processes open-source `Esri land cover data <https://livingatlas.arcgis.com/landcover/>`_.
+* Generates a land management factor raster from land cover inputs.
 * Computes the product of soil erodibility and rainfall erosivity factors.
+* Converts raster files to the Idrisi raster format, with the ``.rst`` file extension.
 * Generates effective upstream drainage area polygons for selected dam locations within a stream network.
 
 

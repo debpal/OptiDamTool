@@ -2,6 +2,17 @@
 Release Notes
 ===============
 
+Version 0.2.1
+---------------
+
+* **Release date:** 23-June-2025.
+
+* **Features:** Introduced several new methods within the :class:`OptiDamTool.WatemSedem` classes.
+
+* **Documentation:** Added a tutorial demonstrating how to use the newly introduced features.
+
+* **Development status:** Upgraded from Alpha to Beta.
+
 Version 0.1.1
 ---------------
 

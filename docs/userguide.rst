@@ -172,7 +172,20 @@ the value of R to 1 where necessary. Refer to the method :meth:`OptiDamTool.Wate
         output_file=r"C:\users\username\output_folder\RUSLE_KR.tif",
         k_multiplier=1000
     )
+    
+    
+Raster Driver Conversion
+-----------------------------
 
+WaTEM/SEDEM does not support raster files in the ``GTiff`` format. Therefore, input rasters must be converted to the Idrisi raster format with the .rst extension,
+which is one of the `two raster formats <https://watem-sedem.github.io/watem-sedem/rasterinfo.html#format>`_ supported by WaTEM/SEDEM.
+
+.. code-block:: python
+    
+    watemsedem.raster_driver_to_rst(
+        file_dict={'rusle_p': r"C:\users\username\output_folder\RUSEL_P_buffer.tif"},
+        folder_path=r"C:\users\username\output_folder"
+    )
 
     
 Adjacent Connectivity Between Dams
