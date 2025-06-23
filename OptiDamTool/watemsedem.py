@@ -351,6 +351,10 @@ class WatemSedem:
         All shapefiles contain a common column ``rst_val``, used for cross-referencing.
         This column contains the corresponding values from the output raster files.
 
+        .. tip::
+            After generating ``region_buffer.shp``, use this shapefile to clip the DEM,
+            including the buffer area, from the extended DEM raster.
+
         .. warning::
             Generated files will overwrite any existing files with the same names.
             It is strongly recommended to use an empty folder as the output directory
@@ -1007,6 +1011,51 @@ class WatemSedem:
             )
 
         return list(output)
+
+    def raster_driver_to_rst(
+        self,
+        file_dict: dict[str, str],
+        folder_path: str
+    ) -> list[str]:
+
+        '''
+        Converts raster files to the Idrisi raster format (RST), which is one of the
+        `two raster formats <https://watem-sedem.github.io/watem-sedem/rasterinfo.html#format>`_
+        supported by WaTEM/SEDEM.
+
+        Parameters
+        ----------
+        file_dict : dict
+            A dictionary where each key is the desired output file name (without path or extension),
+            and the corresponding value is the full path to the input raster file in a non-Idrisi format.
+
+        folder_path : str
+            Path to the directory where all converted output files will be saved.
+            For example, if 'dem' is a key in input file dictionary, the resulting file will be saved as 'dem.rst' in this folder.
+
+        Returns
+        -------
+        list
+            A list of successfully generated .rst files in the output directory.
+        '''
+
+        # raster conversion and save it to the dictionary
+        output_dict = {}
+        for file in file_dict:
+            input_file = file_dict[file]
+            output_file = os.path.join(folder_path, file + '.rst')
+            GeoAnalyze.Raster().driver_convert(
+                input_file=input_file,
+                target_driver='RST',
+                output_file=output_file
+            )
+            output_dict[file + '.rst'] = output_file
+
+        output = [
+            file for file in output_dict if os.path.exists(output_dict[file])
+        ]
+
+        return output
 
     def dam_effective_drainage_polygon(
         self,

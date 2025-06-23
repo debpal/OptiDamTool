@@ -150,6 +150,15 @@ def test_watemsedem(
             output_file=os.path.join(tmp_dir, 'RUSLE_C.tif')
         )
         output == [0, 0.013, 0.22, 0.301, 0.374, 1]
+        # raster driver conversion to Idrisi format
+        output = watemsedem.raster_driver_to_rst(
+            file_dict={
+                'landuse': os.path.join(tmp_dir, 'land_cover_cropland_split.tif')
+            },
+            folder_path=tmp_dir
+        )
+        assert output == ['landuse.rst']
+        assert os.path.exists(os.path.join(tmp_dir, 'landuse.rst'))
         # dam effective drainage area shapefile
         output = watemsedem.dam_effective_drainage_polygon(
             flwdir_file=os.path.join(tmp_dir, 'flwdir.tif'),
