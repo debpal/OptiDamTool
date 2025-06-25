@@ -32,10 +32,19 @@ Provides tools to prepare inputs for the [WaTEM/SEDEM](https://github.com/watem-
 
 
 ### `OptiDamTool.Network` 
-Offers methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network. This class provides the following feature:
+Offers methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network.
 
 * Identifies connectivity between adjacent upstream and downstream dams.
 * Computes the effective upstream drainage area values for selected dam locations within a stream network.
+
+
+### `OptiDamTool.Analysis` 
+Provides methods for analyzing simulation outputs and generating insights.
+
+* Integrates sediment delivery to stream segments.
+* Generates stream shapefiles with comprehensive information of each segment's drainage area and sediment input.
+* Summarizes total sediment dynamics for the model region.
+* Assigns a Coordinate Reference System and the default `GTiff` driver to output Idrisi raster files from a WaTEM/SEDEM simulation.
 
 
 ## Easy Installation
