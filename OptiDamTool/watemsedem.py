@@ -620,11 +620,11 @@ class WatemSedem:
 
         dtype : str, optional
             Data type of the output raster.
-            If None, the data type of the region raster is retained.
+            If None, the data type of the input raster is retained.
 
         nodata : float, optional
             NoData value to assign in the output raster.
-            If None, the NoData value of the region raster is retained.
+            If None, the NoData value of the input raster is retained.
 
         Returns
         -------
@@ -1019,8 +1019,8 @@ class WatemSedem:
     ) -> list[str]:
 
         '''
-        Converts raster files to the Idrisi raster format (RST), which is one of the
-        `two raster formats <https://watem-sedem.github.io/watem-sedem/rasterinfo.html#format>`_
+        Converts raster files to the Idrisi raster format (RST), which is one of the two
+        `raster formats <https://watem-sedem.github.io/watem-sedem/rasterinfo.html#format>`_
         supported by WaTEM/SEDEM.
 
         Parameters
@@ -1036,7 +1036,7 @@ class WatemSedem:
         Returns
         -------
         list
-            A list of successfully generated .rst files in the output directory.
+            A list of successfully generated files with the ``.rst`` extension in the output directory.
         '''
 
         # raster conversion and save it to the dictionary

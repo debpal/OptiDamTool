@@ -1,6 +1,6 @@
-import os
 import OptiDamTool
 import pytest
+import os
 
 
 @pytest.fixture(scope='class')
@@ -27,7 +27,6 @@ def test_netwrok(
     )
     assert output[17] == 21
     assert output[31] == -1
-
     # adjacent upstream connectivity
     output = network.connectivity_adjacent_upstream(
         stream_file=stream_file,
@@ -36,7 +35,6 @@ def test_netwrok(
     )
     assert output[17] == [1, 2, 5, 13]
     assert output[31] == []
-
     # effective upstream drainage area
     output = network.effective_drainage_area(
         stream_file=stream_file,
@@ -46,7 +44,6 @@ def test_netwrok(
     )
     assert output[17] == 2978593200
     assert output[31] == 175558500
-
     # error for same stream identifiers in the input dam list
     with pytest.raises(Exception) as exc_info:
         network.connectivity_adjacent_downstream(
@@ -55,7 +52,6 @@ def test_netwrok(
             dam_list=[21, 22, 5, 31, 31, 17, 24, 27, 2, 13, 1]
         )
     assert exc_info.value.args[0] == 'Duplicate stream identifiers found in the input dam list.'
-
     # error for invalid stream identifier
     with pytest.raises(Exception) as exc_info:
         network.connectivity_adjacent_upstream(

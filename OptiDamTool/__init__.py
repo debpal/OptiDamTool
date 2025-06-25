@@ -1,10 +1,12 @@
 from .watemsedem import WatemSedem
 from .network import Network
+from .analysis import Analysis
 
 
 __all__ = [
     'WatemSedem',
-    'Network'
+    'Network',
+    'Analysis'
 ]
 
 
