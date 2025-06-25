@@ -1,0 +1,25 @@
+{
+	"DEM reading time (seconds)": 0.31,
+	"Number of valid DEM cells": 7862266,
+	"Cell resolution": [
+		30.0,
+		30.0
+	],
+	"Watershed area (m^2)": 7076039400.0,
+	"Pit filling and flow direction calculation time (seconds)": 20.08,
+	"Slope calculation time (seconds)": 2.92,
+	"Aspect calculation time (seconds)": 1.26,
+	"Flow accumulation calculation time (seconds)": 6.28,
+	"Maximum flow accumulation": 7862266,
+	"Flow accumulation threshold type and value": [
+		"percentage",
+		2
+	],
+	"Stream generation from threshold cells": 157245,
+	"Stream generation from threshold area (m^2)": 141520500.0,
+	"Stream calculation time (seconds)": 2.4,
+	"Number of stream segments": 33,
+	"Number of outlets": 1,
+	"Subbasin calculation time (seconds)": 3.2,
+	"Total time (seconds)": 36.54
+}
