@@ -17,6 +17,7 @@ If no errors are raised, the installation is successful.
     import OptiDamTool
     watemsedem = OptiDamTool.WatemSedem()
     network = OptiDamTool.Network()
+    analysis = OptiDamTool.Analysis()
 
 
 .. _ref_dem_to_stream:
@@ -52,7 +53,7 @@ A raster that covers the model region, typically the DEM raster, is used to crea
     
     # extended region raster with DEM boundary polygons
     watemsedem.model_region_extension(
-        dem_file=r"C:\users\username\input_data\dem.tif",
+        dem_file=r"C:\users\username\input_folder\dem.tif",
         buffer_units=50,
         folder_path=r"C:\users\username\output_folder"
     )
@@ -74,10 +75,6 @@ During this process, NoData areas are replaced with a specified fill value, resu
         region_file=r"C:\users\username\output_folder\region_buffer.tif",
         output_file=r"C:\users\username\output_folder\stream_buffer.tif"
     )
-    
-    
-Constant Raster with Extension 
-------------------------------------------
 
 A constant raster, such as the `erosion control factor <https://watem-sedem.github.io/watem-sedem/watem-sedem.html#p-factor>`_,  
 is required for small regions when running WaTEM/SEDEM.  
@@ -109,7 +106,7 @@ to match the CRS of the raster.
 .. code-block:: python
     
     watemsedem.raster_clipping_by_bounding_box(
-        input_file=r"C:\users\username\input_data\land_cover_ESRI.tif",
+        input_file=r"C:\users\username\input_folder\land_cover_ESRI.tif",
         shape_file=r"C:\users\username\output_folder\region_buffer.tif",
         output_file=r"C:\users\username\output_folder\land_cover_region.tif",
         dtype='int16'
@@ -207,14 +204,14 @@ A value of -1 indicates no downstream connectivity, while an empty list indicate
     
     # adjacent downstream connectivity
     network.connectivity_adjacent_downstream(
-        stream_file=r"C:\users\username\data\stream.shp",
+        stream_file=r"C:\users\username\input_folder\stream.shp",
         stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
     
     # adjacent upstream connectivity
     network.connectivity_adjacent_downstream(
-        stream_file=r"C:\users\username\data\stream.shp",
+        stream_file=r"C:\users\username\input_folder\stream.shp",
         stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
@@ -232,19 +229,45 @@ The following methods calculate these areas and generate both a dictionary of va
     
     # dictionary of dams' effective upstream drainage area
     network.effective_upstream_drainage_area(
-        stream_file=r"C:\users\username\data\stream.shp",
+        stream_file=r"C:\users\username\input_folder\stream.shp",
         stream_col='ws_id',
-        info_file=r"C:\users\username\data\stream_information.txt",
+        info_file=r"C:\users\username\input_folder\stream_information.txt",
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )    
     
     # GeoDataFrame of dams' effective upstream drainage polygons
     watemsedem.dam_effective_drainage_area(
-        flwdir_file=r"C:\users\username\flwdir.shp",
-        location_file=r"C:\users\username\subbasin_drainage_points.shp",
+        flwdir_file=r"C:\users\username\input_folder\flwdir.shp",
+        location_file=r"C:\users\username\input_folder\subbasin_drainage_points.shp",
         location_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1],
         folder_path=r"C:\users\username\output_folder"
+    )
+    
+    
+Stream Information Files
+------------------------------
+
+To support informed decision-making when deploying a dam system within a stream network, it is essential to have comprehensive information for each stream segment.
+This includes connectivity, drainage area, and sediment input. The following methods show how to create a TXT file and a shapefile that contain detailed information about stream segments. 
+For more information, refer to the documentation of the :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_txt` and :meth:`OptiDamTool.Analysis.stream_information_shapefile` methods.
+
+
+.. code-block:: python
+    
+    # integrate sediment delivery to stream information TXT file
+    analysis.sediment_delivery_to_stream_txt(
+        input_file=r"C:\users\username\input_folder\stream_information.txt",
+        stream_col='ws_id',
+        sediment_file=r"C:\users\username\input_folder\Total sediment segments.txt",
+        cumsed_file=r"C:\users\username\input_folder\Cumulative sediment segments.txt",
+        output_file=r"C:\users\username\output_folder\stream_sediment_delivery.txt"
     )    
     
+    # stream shapefile with comprehensive information 
+    analysis.stream_information_shapefile(
+        stream_file=r"C:\users\username\input_folder\stream.shp",
+        info_file=r"C:\users\username\output_folder\stream_sediment_delivery.txt",
+        output_file=r"C:\users\username\output_folder\stream_info.shp"
+    )    
  
