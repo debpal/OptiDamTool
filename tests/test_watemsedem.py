@@ -209,4 +209,4 @@ def test_error_invalid_folder(
 
 def test_github():
 
-    assert str(1) == '1'
+    assert str(2) == '2'
