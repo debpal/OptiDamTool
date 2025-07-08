@@ -269,5 +269,24 @@ For more information, refer to the documentation of the :meth:`OptiDamTool.Analy
         stream_file=r"C:\users\username\input_folder\stream.shp",
         info_file=r"C:\users\username\output_folder\stream_sediment_delivery.txt",
         output_file=r"C:\users\username\output_folder\stream_info.shp"
-    )    
+    )
+    
+    
+Effective Upstream Metric Summary of Dams
+---------------------------------------------
+
+Once the stream information shapefile is generated using the :meth:`OptiDamTool.Analysis.stream_information_shapefile` method,
+it can be used to compute a summary of effective upstream metrics for selected dams. This includes identifying each dam’s directly connected upstream dams,
+calculating its effective drainage area, and estimating the corresponding sediment inflow from that area.
+These metrics provide a comprehensive understanding of how upstream network structure influences hydrological and sediment contributions to individual dam locations.
+
+
+.. code-block:: python
+
+    network.effective_upstream_metrics_summary(
+        stream_file=r"C:\users\username\output_folder\stream_info.shp",
+        stream_col='ws_id',
+        dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
+    )
+
  
