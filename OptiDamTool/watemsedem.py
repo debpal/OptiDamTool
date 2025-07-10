@@ -110,13 +110,61 @@ class WatemSedem:
 
         return lm_map
 
+    def _write_stream_shapefile(
+        self,
+        stream_gdf: geopandas.GeoDataFrame,
+        stream_file: str
+    ) -> None:
+
+        '''
+        Writes a stream GeoDataFrame containing columns with large values to a shapefile,
+        mitigating ``RuntimeWarning`` when exporting to the DBF file.
+
+        Parameters
+        ----------
+        gdf : GeoDataFrame
+            Input GeoDataFrame.
+
+        output_file : str
+            Path to the output file.
+
+        Returns
+        -------
+        None
+        '''
+
+        target_cols = [
+            'isa_m2',
+            'flwacc',
+            'csa_m2',
+            'sed_kg',
+            'cumsed_kg',
+            'sed_ton',
+            'cumsed_ton'
+        ]
+
+        property_cols = [col for col in stream_gdf.columns if col != 'geometry']
+        property_dict = {
+            col: 'int' if col not in target_cols else 'float:19.2' for col in property_cols
+        }
+        stream_gdf.to_file(
+            filename=stream_file,
+            schema={
+                'geometry': 'LineString',
+                'properties': property_dict
+            },
+            engine='fiona'
+        )
+
+        return None
+
     def dem_to_stream(
         self,
         dem_file: str,
         flwacc_percent: float,
         folder_path: str,
         flw_col: str = 'ws_id'
-    ) -> str:
+    ) -> geopandas.GeoDataFrame:
 
         '''
         Generates all required input and supporting files for running the WaTEM/SEDEM model
@@ -141,16 +189,21 @@ class WatemSedem:
         Additional raster and shapefiles (not required for WaTEM/SEDEM) are created for detailed analysis:
 
         - **flwdir.tif**: Raster of flow direction.
-        - **stream_lines.shp**: LineString shapeifle contains a column ``ds_id`` that represents the adjacent downstream segment.
-          A value of -1 means no downstream connectivity.
         - **subbasins.shp**: Polygon shapefile contains a column ``area_m2`` that represents the area of each subbasin in square meters.
         - **subbasin_drainage_points.shp**: Point shapefile contains a column ``flwacc`` that represents the flow accumulation at each drainage point.
+          The flow accumulation values are calculated from a raster in which all valid DEM cells are converted to 1.
+        - **stream_lines.shp**: LineString shapefile with columns:
+            - ``flw_col``: Unique identifier of each stream segment
+            - ``ds_id``: Identifies of the adjacent downstream segment (-1 if no downstream connectivity)
+            - ``isa_m2``: Individual subbasin area of the segment (renamed ``area_m2`` from ``subbasins.shp``), in sqaure meters.
+            - ``flwacc``: Flow accumulation value fetched from ``subbasin_drainage_points.shp``.
+            - ``csa_m2``: Cumulative subbasin area from upstream heads, in square meters.
 
         The following additional files are also generated:
 
-        - **stream_information.txt**: Contains a table summarizing the shapefiles, with columns ``flw_col``, ``ds_id``, ``area_m2``,
-          ``flwacc``, and ``cumarea_m2`` (cumulative drainage area).
-        - **summary.json**: Contains a dictionary summarizing the processing time and parameters used.
+        - **stream_information.txt**: Table of all attributes from ``stream_lines.shp`` (excluding geometry),
+          allowing stream analysis without directly opening the shapefile.
+        - **summary.json**: Dictionary summarizing processing time and parameters used.
 
         .. warning::
             Some files are generated temporarily during the simulation and will be deleted at the end.
@@ -179,8 +232,8 @@ class WatemSedem:
 
         Returns
         -------
-        str
-            Message confirming successful creation of stream-related output files.
+        GeoDataFrame
+            A GeoDataFrame containing information about the stream network.
         '''
 
         # check existence of folder path
@@ -285,6 +338,11 @@ class WatemSedem:
             right=subbasin_gdf[[flw_col, 'area_m2']],
             on=flw_col
         )
+        si_df = si_df.rename(
+            columns={
+                'area_m2': 'isa_m2'
+            }
+        )
         pour_gdf = geopandas.read_file(
             filename=os.path.join(folder_path, 'subbasin_drainage_points.shp')
         )
@@ -294,11 +352,22 @@ class WatemSedem:
         )
         with rasterio.open(dem_file) as input_dem:
             dem_res = input_dem.res
-        si_df['cumarea_m2'] = si_df['flwacc'] * dem_res[0] * dem_res[1]
+        si_df['csa_m2'] = si_df['flwacc'] * dem_res[0] * dem_res[1]
         si_df.to_csv(
             path_or_buf=os.path.join(folder_path, 'stream_information.txt'),
             sep='\t',
             index=False
+        )
+
+        # merging stream GeoDataFrame with information DataFrame
+        common_cols = [col for col in si_df.columns if col in stream_gdf.columns]
+        stream_gdf = stream_gdf.merge(
+            right=si_df,
+            on=common_cols
+        )
+        self._write_stream_shapefile(
+            stream_gdf=stream_gdf,
+            stream_file=os.path.join(folder_path, 'stream_lines.shp')
         )
 
         # delete files that are not required
@@ -320,9 +389,7 @@ class WatemSedem:
             rename_map={'summary_swatplus_preliminary_files': 'summary'}
         )
 
-        output = 'All required files has been generated'
-
-        return output
+        return stream_gdf
 
     def model_region_extension(
         self,
@@ -878,10 +945,13 @@ class WatemSedem:
                 index=False,
                 float_format='%.3f'
             )
-            # adding -1 as general identifier of stream linen
+            # adding -1 as general identifier for stream lines
             stream_gdf = geopandas.read_file(stream_file)
             stream_gdf['sg_id'] = - 1
-            stream_gdf.to_file(os.path.join(tmp_dir, 'stream.shp'))
+            self._write_stream_shapefile(
+                stream_gdf=stream_gdf,
+                stream_file=os.path.join(tmp_dir, 'stream.shp')
+            )
             # paste stream geometries to land cover raster
             self.raster.overlaid_with_geometries(
                 input_file=lc_file,
@@ -990,10 +1060,13 @@ class WatemSedem:
 
         # temporary directory
         with tempfile.TemporaryDirectory() as tmp_dir:
-            # adding temporary identifier 15 (beyond value range of ERSI land cover) for stream
+            # adding -1 as general identifier for stream lines
             stream_gdf = geopandas.read_file(stream_file)
             stream_gdf['gs_id'] = -1
-            stream_gdf.to_file(os.path.join(tmp_dir, 'stream.shp'))
+            self._write_stream_shapefile(
+                stream_gdf=stream_gdf,
+                stream_file=os.path.join(tmp_dir, 'stream.shp')
+            )
             # paste stream geometries to land cover raster
             self.raster.overlaid_with_geometries(
                 input_file=lc_file,

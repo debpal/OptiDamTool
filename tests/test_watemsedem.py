@@ -36,7 +36,7 @@ def test_watemsedem(
             flwacc_percent=2,
             folder_path=tmp_dir
         )
-        assert output == 'All required files has been generated'
+        assert len(output) == 33
         assert os.path.exists(os.path.join(tmp_dir, 'stream_lines.tif'))
         assert os.path.exists(os.path.join(tmp_dir, 'stream_routing.tif'))
         assert os.path.exists(os.path.join(tmp_dir, 'stream_lines.shp'))
