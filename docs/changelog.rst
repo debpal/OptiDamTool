@@ -2,10 +2,20 @@
 Release Notes
 ===============
 
+Version 0.2.2
+---------------
+
+* **Release date:** 10-Jul-2025.
+
+* **Features:** Introduced several new methods within the :class:`OptiDamTool.Network` classes.
+
+* **Documentation:** Added a tutorial demonstrating how to use the newly introduced features.
+
+
 Version 0.2.1
 ---------------
 
-* **Release date:** 23-June-2025.
+* **Release date:** 23-Jun-2025.
 
 * **Features:** Introduced several new methods within the :class:`OptiDamTool.WatemSedem` classes.
 
@@ -13,10 +23,11 @@ Version 0.2.1
 
 * **Development status:** Upgraded from Alpha to Beta.
 
+
 Version 0.1.1
 ---------------
 
-* **Release date:** 10-June-2025.
+* **Release date:** 10-Jun-2025.
 
 * **Features:** Introduced new methods within the :class:`OptiDamTool.WatemSedem` and :class:`OptiDamTool.Network` classes.
 
@@ -28,7 +39,7 @@ Version 0.1.1
 Version 0.1.0
 ---------------
 
-* **Release date:** 06-June-2025.
+* **Release date:** 06-Jun-2025.
 
 * **Features:** Introduced a method in the :class:`OptiDamTool.WatemSedem` class.
 
