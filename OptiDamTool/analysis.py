@@ -1,6 +1,8 @@
 import GeoAnalyze
 import geopandas
 import pandas
+import bs4
+import re
 import json
 import tempfile
 import os
@@ -282,3 +284,178 @@ class Analysis:
         output = 'All geoprocessing steps are complete'
 
         return output
+
+    def _dam_features_extraction(
+        self,
+        input_file: str,
+        output_file: str
+    ) -> geopandas.GeoDataFrame:
+
+        '''
+        Extracts dam features in the Kingdom of Saudi Arabia from the input file and
+        translates Arabic text to English where applicable. This private utility function
+        returns a GeoDataFrame containing the processed and translated dam features.
+        '''
+
+        # Arabic to English translation dictionary
+        arabic_dict = {
+            'added_columns': {
+                'المنطقة': 'region',
+                'المحافظة': 'governorate',
+                'اسم_السد': 'dam_name',
+                'الحالة': 'status',
+                'الغرض__الاساسي': 'original_purpose',
+                'الغرض_الحالي': 'current_purpose',
+                'النوع': 'dam_type',
+                'طول_السد__م': 'dam_length_m',
+                'إرتفاع_السد__م': 'dam_height_m',
+                'إرتفاع_المفيض__م': 'spillway_height_m',
+                'السعة_التخزينية__م3': 'storage_capacity_m3',
+                'تاريخ_التنفيذ': 'construction_year_hijri',
+                'شمال': 'latitude',
+                'شرق': 'longitude',
+                'Dam_Area': 'drainage_area',
+                'اسم_الوادي': 'wadi_name',
+                'اسم_الوادي_2': 'wadi_name_alternative'
+            },
+            'row_region': {
+                'الرياض': 'Riyadh',
+                'مكة المكرمة': 'Makkah',
+                'المدينة المنورة': 'Madinah',
+                'القصيم': 'Qassim',
+                'الشرقية': 'Eastern Province',
+                'الحدود الشمالية': 'Northern Borders',
+                'عسير': 'Asir',
+                'الباحة': 'Al-Baha',
+                'حائل': 'Hail',
+                'تبوك': 'Tabuk',
+                'الجوف': 'Al-Jawf',
+                'جازان': 'Jazan',
+                'نجران': 'Najran'
+            },
+            'row_status': {
+                'منفذ': 'Completed',
+                'تحت التنفيذ': 'Under construction',
+                'تحت التصميم': 'Under design',
+                'تحت الطرح': 'Under tendering'
+            },
+            'row_original_purpose': {
+                'استعاضة': 'Replacement',
+                'تحكم': 'Control',
+                'حماية': 'Protection',
+                'شرب': 'Drinking'
+            },
+            'row_current_purpose': {
+                'حماية': 'Protection',
+                'استعاضة': 'Replacement',
+                'شرب': 'Drinking'
+            },
+            'row_dam_type': {
+                'ترابي': 'Earthen',
+                'خرساني': 'Concrete',
+                'ركامي': 'Rockfill',
+                'جوفي': 'Subsurface',
+                'حجري': 'Stone'
+            },
+            'row_drainage_area': {
+                'الرف الرسوبي': 'Sedimentary shelf',
+                'الدرع العربي': 'Arabian shield'
+            },
+            'row_wadi_name': {
+                'حوض لمنطقة الشرقية': 'Eastern Region Basin',
+                'حوض وادي حنيفة': 'Wadi Hanifa Basin',
+                'حوض وادي الرمة': 'Wadi Al-Rummah Basin',
+                'حوض وادي السهباء': 'Wadi Al-Sahba Basin',
+                'حوض وادي الدواسر': 'Wadi Al-Dawasir Basin',
+                'ج': 'J',
+                'حوض وادي الخرمة': 'Wadi Al-Khurmah Basin',
+                'حوض وادي الحمض': 'Wadi Al-Hamad Basin',
+                'ب': 'B',
+                'حوض وادي الاخضر': 'Wadi Al-Akhdar Basin',
+                'حوض وادي عرعر': 'Wadi Arar Basin',
+                'حوض وادي السرحان': 'Wadi Al-Sarhan Basin',
+                'ا': 'A',
+                'حوض الربع الخالي': 'Rub" Al-Khali Basin'
+            },
+            'row_wadi_name_alternative': {
+                '<Null>': 'N/A',
+                'Rainfall Area': 'Rainfall area'
+            }
+        }
+
+        # dam GeoDataFrame
+        dam_gdf = geopandas.read_file(
+            filename=input_file
+        )
+
+        # feature list
+        dam_features = []
+        for i, html_str in enumerate(dam_gdf['Description']):
+            soup = bs4.BeautifulSoup(html_str, 'html.parser')
+            table = soup.find('table')
+            if not isinstance(table, bs4.Tag):
+                continue
+            inner_table = table.find('table')
+            if not isinstance(inner_table, bs4.Tag):
+                continue
+            rows = inner_table.find_all('tr')
+            i_dict = {}
+            for row in rows:
+                if not isinstance(row, bs4.Tag):
+                    continue
+                cols = row.find_all('td')
+                if len(cols) == 2:
+                    key = cols[0].get_text(strip=True)
+                    value = cols[1].get_text(strip=True)
+                    i_dict[key] = value
+            translated_dict = {
+                arabic_dict['added_columns'][k]: v for k, v in i_dict.items()
+            }
+            dam_features.append(translated_dict)
+
+        # Combine feature DataFrame with dam GeoDataFrame
+        feature_df = pandas.DataFrame(dam_features)
+        dam_gdf = pandas.concat(
+            objs=[dam_gdf, feature_df],
+            axis=1
+        )
+
+        # drop columns that are not required
+        dam_gdf = dam_gdf.drop(
+            columns=['layer', 'Name', 'Description']
+        )
+
+        # convert string number to float in the applicable columns
+        float_cols = [
+            'dam_length_m',
+            'dam_height_m',
+            'storage_capacity_m3',
+            'latitude',
+            'longitude'
+        ]
+        for col in float_cols:
+            dam_gdf[col] = dam_gdf[col].astype(float)
+
+        # convert Arabic row entries to English
+        for col in dam_gdf.columns:
+            dict_key = 'row_' + col
+            if dict_key in arabic_dict:
+                dam_gdf[col] = dam_gdf[col].apply(lambda x: arabic_dict[dict_key][x])
+
+        # get approximate Gregorian construction year
+        dam_gdf['construction_year'] = dam_gdf['construction_year_hijri'].apply(
+            lambda x: re.search(r'(\d+)', x)
+        )
+        dam_gdf['construction_year'] = dam_gdf['construction_year'].apply(
+            lambda x: x.group(1) if x else None
+        )
+        dam_gdf['construction_year'] = dam_gdf['construction_year'].apply(
+            lambda x: int(float(x) * 0.97 + 622) if x else None
+        )
+
+        # saving dam GeoDataFrame
+        dam_gdf.to_file(
+            filename=output_file
+        )
+
+        return dam_gdf

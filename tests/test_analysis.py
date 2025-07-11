@@ -37,3 +37,11 @@ def test_analysis(
         with rasterio.open(os.path.join(tmp_dir, 'WATEREROS_ton.tif')) as input_raster:
             raster_array = input_raster.read(1)
             assert round(raster_array.max()) == 217735
+        # private function for dam extraction features
+        output = analysis._dam_features_extraction(
+            input_file=os.path.join(data_folder, 'dam_features_sample.geojson'),
+            output_file=os.path.join(tmp_dir, 'dam_features_extracted.geojson')
+        )
+        print(output)
+        print(output.columns)
+        assert output.shape == (6, 19)
