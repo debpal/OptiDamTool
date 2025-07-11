@@ -11,7 +11,8 @@ authors = [
   { name="Debasish Pal", email="bestdebasish@gmail.com" },
 ]
 dependencies = [
-    "GeoAnalyze"
+    "GeoAnalyze",
+    "beautifulsoup4"
 ]
 readme = "README.md"
 requires-python = ">=3.10"
