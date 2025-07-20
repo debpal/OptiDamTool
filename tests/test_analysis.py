@@ -42,6 +42,4 @@ def test_analysis(
             input_file=os.path.join(data_folder, 'dam_features_sample.geojson'),
             output_file=os.path.join(tmp_dir, 'dam_features_extracted.geojson')
         )
-        print(output)
-        print(output.columns)
         assert output.shape == (6, 19)

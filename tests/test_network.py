@@ -16,6 +16,16 @@ def analysis():
     yield OptiDamTool.Analysis()
 
 
+@pytest.fixture
+def message():
+
+    output = {
+        'error_folder': 'Input folder path is not valid.'
+    }
+
+    return output
+
+
 def test_netwrok(
     network,
     analysis
@@ -26,7 +36,7 @@ def test_netwrok(
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         # adjacent downstream connectivity
-        output = network.connectivity_adjacent_downstream(
+        output = network.connectivity_adjacent_downstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
@@ -34,7 +44,7 @@ def test_netwrok(
         assert output[17] == 21
         assert output[31] == -1
         # adjacent upstream connectivity
-        output = network.connectivity_adjacent_upstream(
+        output = network.connectivity_adjacent_upstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1],
@@ -42,8 +52,8 @@ def test_netwrok(
         )
         assert output[17] == [1, 2, 5, 13]
         assert output[31] == []
-        # effective upstream drainage area
-        output = network.effective_drainage_area(
+        # controlled drainage area
+        output = network.controlled_drainage_area(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
@@ -66,29 +76,67 @@ def test_netwrok(
             output_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp')
         )
         assert output.shape == (33, 10)
-        # effective sediment inflow
-        output = network.effective_sediment_inflow(
+        # sediment inflow from drainage area
+        output = network.sediment_inflow_from_drainage_area(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
         )
         assert round(output[17]) == 534348713
         assert output[31] == 1292848
-        # effective upstream metric summary
-        output = network.effective_upstream_metrics_summary(
+        # upstream metric summary of dams
+        output = network.upstream_metrics_summary(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
         )
         assert len(output) == 3
-        assert 'adjacent_upstream_connection' in output
-        assert 'effective_drainage_area_m2' in output
-        assert 'effective_sediment_inflow_kg' in output
+        assert 'adjacent_upstream_dams' in output
+        assert 'controlled_drainage_m2' in output
+        assert 'sediment_inflow_kg' in output
         assert 'adjacent_downstream_connection' not in output
+        assert output['adjacent_upstream_dams'][17] == [5, 2, 13, 1]
+        assert output['controlled_drainage_m2'][17] == 2978593200
+        assert round(output['sediment_inflow_kg'][17]) == 534348713
+        # lite version of storage dynamics for sedimentation
+        output = network.storage_dynamics_lite_save_output(
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp'),
+            stream_col='ws_id',
+            storage_dict={
+                21: 1500000,
+                5: 100000,
+                24: 60000,
+                27: 200000,
+                33: 1000000,
+            },
+            year_limit=15,
+            sediment_density=1300,
+            trap_threshold=0.05,
+            folder_path=tmp_dir
+        )
+        assert len(output) == 3
+        # detailed version of storage dynamics for sedimentation
+        output = network.storage_dynamics_detailed_save_output(
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp'),
+            stream_col='ws_id',
+            storage_dict={
+                21: 1500000,
+                5: 100000,
+                24: 60000,
+                27: 200000,
+                33: 1000000,
+            },
+            year_limit=15,
+            sediment_density=1300,
+            trap_threshold=0.05,
+            folder_path=tmp_dir
+        )
+        assert len(output) == 7
 
 
 def test_error_netwrok(
-    network
+    network,
+    message
 ):
 
     # data folder
@@ -96,7 +144,7 @@ def test_error_netwrok(
 
     # error for same stream identifiers in the input dam list
     with pytest.raises(Exception) as exc_info:
-        network.connectivity_adjacent_downstream(
+        network.connectivity_adjacent_downstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 31, 17, 24, 27, 2, 13, 1]
@@ -104,9 +152,40 @@ def test_error_netwrok(
     assert exc_info.value.args[0] == 'Duplicate stream identifiers found in the input dam list.'
     # error for invalid stream identifier
     with pytest.raises(Exception) as exc_info:
-        network.connectivity_adjacent_upstream(
+        network.connectivity_adjacent_upstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1, 34]
         )
     assert exc_info.value.args[0] == 'Invalid stream identifier 34 for a dam.'
+    # error for mismatch of keys between storage and drainage area dictionaries
+    with pytest.raises(Exception) as exc_info:
+        network.trap_efficiency_brown(
+            storage_dict={5: 1},
+            area_dict={6: 1}
+        )
+    assert exc_info.value.args[0] == 'Mismatch of keys between two dictionaries.'
+    # error of invalid folder path for storage dynamics lite version
+    with pytest.raises(Exception) as exc_info:
+        network.storage_dynamics_lite_save_output(
+            stream_file='stream_sediment_delivery.shp',
+            stream_col='ws_id',
+            storage_dict={15: 2000000},
+            year_limit=15,
+            sediment_density=1300,
+            trap_threshold=0.05,
+            folder_path='tmp_dir'
+        )
+    assert exc_info.value.args[0] == message['error_folder']
+    # error of invalid folder path for storage dynamics detailed version
+    with pytest.raises(Exception) as exc_info:
+        network.storage_dynamics_detailed_save_output(
+            stream_file='stream_sediment_delivery.shp',
+            stream_col='ws_id',
+            storage_dict={15: 2000000},
+            year_limit=15,
+            sediment_density=1300,
+            trap_threshold=0.05,
+            folder_path='tmp_dir'
+        )
+    assert exc_info.value.args[0] == message['error_folder']

@@ -1130,7 +1130,7 @@ class WatemSedem:
 
         return output
 
-    def dam_effective_drainage_polygon(
+    def dam_controlled_drainage_polygons(
         self,
         flwdir_file: str,
         location_file: str,
