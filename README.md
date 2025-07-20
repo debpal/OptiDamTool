@@ -35,8 +35,9 @@ Provides tools to prepare inputs for the [WaTEM/SEDEM](https://github.com/watem-
 Offers methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network.
 
 * Identifies connectivity between adjacent upstream and downstream dams.
-* Computes the effective upstream drainage area values for selected dam locations within a stream network.
-* Estimates sediment inflow to dams based on effective upstream drainage areas.
+* Computes the controlled upstream drainage areas for selected dam locations within a stream network.
+* Estimates sediment inflow to dams based on controlled upstream drainage areas.
+* Simulates storage dynamics of individual dams in a system due to sedimentation, using a mass balance approach.
 
 
 ### `OptiDamTool.Analysis` 
