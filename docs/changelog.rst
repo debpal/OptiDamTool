@@ -2,6 +2,16 @@
 Release Notes
 ===============
 
+Version 0.3.2
+---------------
+
+* **Release date:** 20-Jul-2025.
+
+* **Features:** Introduced several new methods within the :class:`OptiDamTool.Network` classes.
+
+* **Documentation:** Added a tutorial demonstrating how to use the newly introduced features.
+
+
 Version 0.2.2
 ---------------
 

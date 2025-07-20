@@ -38,6 +38,7 @@ Offers methods for establishing hydrological and sedimentation flow connectivity
 * Identifies connectivity between adjacent upstream and downstream dams.
 * Computes the effective upstream drainage area values for selected dam locations within a stream network.
 * Estimates sediment inflow to dams based on effective upstream drainage areas.
+* Simulates storage dynamics of individual dams in a system due to sedimentation, using a mass balance approach.
 
 
 :class:`OptiDamTool.Analysis`

@@ -200,39 +200,39 @@ A value of -1 indicates no downstream connectivity, while an empty list indicate
 .. code-block:: python
     
     # adjacent downstream connectivity
-    network.connectivity_adjacent_downstream(
+    network.connectivity_adjacent_downstream_dam(
         stream_file=r"C:\users\username\input_folder\stream_lines.shp",
         stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
     
     # adjacent upstream connectivity
-    network.connectivity_adjacent_downstream(
+    network.connectivity_adjacent_upstream_dam(
         stream_file=r"C:\users\username\input_folder\stream_lines.shp",
         stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
     
     
-Effective Drainage Area of Dams
+Controlled Drainage Area of Dams
 -----------------------------------------
 
-When working with a dam system within a stream network, the effective upstream drainage areas  
+When working with a dam system within a stream network, the controlled upstream drainage areas  
 for each dam are dynamically influenced by their specific locations.  
 The following methods calculate these areas and generate both a dictionary of values and a polygon shapefile representing the upstream drainage areas.
 
 
 .. code-block:: python
     
-    # dictionary of dams' effective upstream drainage area
-    network.effective_upstream_drainage_area(
+    # dictionary of dams' controlled upstream drainage area
+    network.controlled_drainage_area(
         stream_file=r"C:\users\username\input_folder\stream_lines.shp",
         stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )    
     
-    # GeoDataFrame of dams' effective upstream drainage polygons
-    watemsedem.dam_effective_drainage_area(
+    # GeoDataFrame of dams' controlled upstream drainage polygons
+    watemsedem.dam_controlled_drainage_polygons(
         flwdir_file=r"C:\users\username\input_folder\flwdir.shp",
         location_file=r"C:\users\username\input_folder\subbasin_drainage_points.shp",
         location_col='ws_id',
@@ -269,16 +269,81 @@ For more details, refer to the method documentation.
     )
 
 
-Once the final stream shapefile containing sediment inflow information is generated, it can be used to compute a summary of effective upstream metrics for selected dams.
-This includes identifying each dam’s directly connected upstream dams, calculating its effective drainage area, and estimating the corresponding sediment inflow from that area.
+Once the final stream shapefile containing sediment inflow information is generated, it can be used to compute a summary of upstream metrics for selected dams.
+This includes identifying each dam’s directly connected upstream dams, calculating its controlled drainage area, and estimating the corresponding sediment inflow from that area.
 These metrics provide a comprehensive understanding of how the upstream network structure influences hydrological and sediment contributions to individual dam locations.
 
 .. code-block:: python
 
-    network.effective_upstream_metrics_summary(
+    network.upstream_metrics_summary(
         stream_file=r"C:\users\username\output_folder\stream_sediment_delivery.shp",
         stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
+
+
+Dam System Storage Dynamics for Sedimentation
+---------------------------------------------------
+
+This method simulates the annual storage dynamics of a dam system affected by sedimentation. For each simulation year,
+the total sediment inflow to a dam is calculated based on two components: the sediment generated from the dam’s own drainage area
+and the sediment released from upstream dams.
+
+The trapped sediment is determined by multiplying the total sediment inflow by the dam’s trap efficiency,
+which is a value between 0 and 1. At the end of each simulation year, the storage capacity of each dam is updated using a mass balance approach
+that accounts for the volume of sediment trapped.
+
+When a dam becomes inactive, either because it has no remaining storage capacity or
+its sediment trapping efficiency falls below a defined threshold, the simulation dynamically updates the system.
+This includes adjusting system connectivity, recalculating controlled drainage areas, and updating sediment inflows to other dams in the network.
+
+The simulation continues for a user-defined number of years or terminates early if all dams become inactive. The function returns a dictionary
+where each key corresponds to a DataFrame containing dam lifespan results, system-wide sedimentation statistics,
+individual dam performance metrics, and the simulation parameters used.
+
+
+.. code-block:: python
+    
+    network.storage_dynamics_detailed(
+        stream_file=r"C:\users\username\output_folder\stream_sediment_delivery.shp",
+        stream_col='ws_id',
+        storage_dict={
+            21: 1500000,
+            5: 100000,
+            24: 60000,
+            27: 200000,
+            33: 1000000,
+        },
+        sediment_density=1300,
+        trap_threshold=0.05,
+        year_limit=100
+    )
+   
+
+To save the dictionary output from the above function to the input directory as a set of JSON files, use the following function.
+Each file will be named after a dictionary key and will contain the corresponding DataFrame.
+
+
+.. code-block:: python
+    
+    network.storage_dynamics_detailed_save_output(
+        stream_file=r"C:\users\username\output_folder\stream_sediment_delivery.shp",
+        stream_col='ws_id',
+        storage_dict={
+            21: 1500000,
+            5: 100000,
+            24: 60000,
+            27: 200000,
+            33: 1000000,
+        },
+        sediment_density=1300,
+        trap_threshold=0.05,
+        year_limit=100,
+        folder_path=r"C:\users\username\output_folder"
+    )
+    
+A lite version of this method is also available, providing a simplified simulation with limited output. For complete details, refer to the methods
+:meth:`OptiDamTool.Network.storage_dynamics_lite` and :meth:`OptiDamTool.Network.storage_dynamics_lite_save_output`.
+   
 
  
