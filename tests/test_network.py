@@ -61,24 +61,26 @@ def test_netwrok(
         assert output[17] == 2978593200
         assert output[31] == 175558500
         # sediment delivery to stream
-        output = analysis.sediment_delivery_to_stream_txt(
-            input_file=os.path.join(data_folder, 'stream_information.txt'),
+        output = analysis.sediment_delivery_to_stream_json(
+            info_file=os.path.join(data_folder, 'stream_information.json'),
             stream_col='ws_id',
             segsed_file=os.path.join(data_folder, 'Total sediment segments.txt'),
             cumsed_file=os.path.join(data_folder, 'Cumulative sediment segments.txt'),
-            output_file=os.path.join(tmp_dir, 'stream_sediment_delivery.txt')
+            json_file=os.path.join(tmp_dir, 'stream_sediment_delivery.json')
         )
         assert output.shape == (33, 7)
+        assert os.path.exists(os.path.join(tmp_dir, 'stream_sediment_delivery.json'))
         # stream information shapefile
-        output = analysis.sediment_delivery_to_stream_shapefile(
+        output = analysis.sediment_delivery_to_stream_geojson(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
-            sediment_file=os.path.join(tmp_dir, 'stream_sediment_delivery.txt'),
-            output_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp')
+            sediment_file=os.path.join(tmp_dir, 'stream_sediment_delivery.json'),
+            geojson_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson')
         )
         assert output.shape == (33, 10)
+        assert os.path.exists(os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'))
         # sediment inflow from drainage area
         output = network.sediment_inflow_from_drainage_area(
-            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp'),
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
         )
@@ -86,7 +88,7 @@ def test_netwrok(
         assert output[31] == 1292848
         # upstream metric summary of dams
         output = network.upstream_metrics_summary(
-            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp'),
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
             stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
         )
@@ -100,7 +102,7 @@ def test_netwrok(
         assert round(output['sediment_inflow_kg'][17]) == 534348713
         # lite version of storage dynamics for sedimentation
         output = network.storage_dynamics_lite_save_output(
-            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp'),
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
             stream_col='ws_id',
             storage_dict={
                 21: 1500000,
@@ -117,7 +119,7 @@ def test_netwrok(
         assert len(output) == 3
         # detailed version of storage dynamics for sedimentation
         output = network.storage_dynamics_detailed_save_output(
-            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.shp'),
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
             stream_col='ws_id',
             storage_dict={
                 21: 1500000,

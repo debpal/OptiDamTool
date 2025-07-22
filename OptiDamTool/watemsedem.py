@@ -201,7 +201,7 @@ class WatemSedem:
 
         The following additional files are also generated:
 
-        - **stream_information.txt**: Table of all attributes from ``stream_lines.shp`` (excluding geometry),
+        - **stream_information.json**: Table of all attributes from ``stream_lines.shp`` (excluding geometry),
           allowing stream analysis without directly opening the shapefile.
         - **summary.json**: Dictionary summarizing processing time and parameters used.
 
@@ -286,7 +286,8 @@ class WatemSedem:
             mask_file=os.path.join(folder_path, 'stream_lines.tif'),
             output_file=os.path.join(folder_path, 'stream_routing.tif'),
             remove_values=[0],
-            fill_value=0
+            fill_value=0,
+            dtype='int16'
         )
 
         print(
@@ -353,10 +354,10 @@ class WatemSedem:
         with rasterio.open(dem_file) as input_dem:
             dem_res = input_dem.res
         si_df['csa_m2'] = si_df['flwacc'] * dem_res[0] * dem_res[1]
-        si_df.to_csv(
-            path_or_buf=os.path.join(folder_path, 'stream_information.txt'),
-            sep='\t',
-            index=False
+        si_df.to_json(
+            path_or_buf=os.path.join(folder_path, 'stream_information.json'),
+            orient='records',
+            lines=True
         )
 
         # merging stream GeoDataFrame with information DataFrame
