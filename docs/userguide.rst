@@ -50,7 +50,6 @@ is used to create an extended region raster that includes the desired buffer zon
 
 .. code-block:: python
     
-    # extended region raster with DEM boundary polygons
     watemsedem.model_region_extension(
         dem_file=r"C:\users\username\input_folder\dem.tif",
         buffer_units=50,
@@ -65,7 +64,6 @@ During this process, NoData areas are replaced with a specified fill value, resu
 
 .. code-block:: python
     
-    # stream raster extension with extended model region
     watemsedem.raster_extension(
         input_file=r"C:\users\username\output_folder\stream_lines.tif",
         fill_value=0,
@@ -80,7 +78,6 @@ a constant-value raster can be created efficiently, as shown below:
 
 .. code-block:: python
     
-    # erosion control factor raster
     watemsedem.raster_constant_extension(
         input_file=r"C:\users\username\output_folder\region.tif",
         constant_value=1,
@@ -219,25 +216,15 @@ Controlled Drainage Area of Dams
 
 When working with a dam system within a stream network, the controlled upstream drainage areas  
 for each dam are dynamically influenced by their specific locations.  
-The following methods calculate these areas and generate both a dictionary of values and a polygon shapefile representing the upstream drainage areas.
+The following method calculate these areas.
 
 
 .. code-block:: python
     
-    # dictionary of dams' controlled upstream drainage area
     network.controlled_drainage_area(
         stream_file=r"C:\users\username\input_folder\stream_lines.shp",
         stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
-    )    
-    
-    # GeoDataFrame of dams' controlled upstream drainage polygons
-    watemsedem.dam_controlled_drainage_polygons(
-        flwdir_file=r"C:\users\username\input_folder\flwdir.shp",
-        location_file=r"C:\users\username\input_folder\subbasin_drainage_points.shp",
-        location_col='ws_id',
-        dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1],
-        folder_path=r"C:\users\username\output_folder"
     )
     
     
@@ -245,38 +232,40 @@ Integration of Stream Information and Sediment Inflow Files
 ----------------------------------------------------------------
 
 To support informed decision-making when deploying a dam system within a stream network, it is essential to have detailed information for each stream segment.
-This includes attributes such as stream connectivity, subbasin area, and sediment inflow. The following methods demonstrate how to generate a TXT file
-containing comprehensive stream segment data with sediment delivery values, and a shapefile that spatially represents sediment inflow for each segment.
+This includes attributes such as stream connectivity, subbasin area, and sediment inflow. The following methods demonstrate how to generate a JSON file
+containing comprehensive stream segment data with sediment delivery values, and a GeoJSON shapefile that spatially represents sediment inflow for each segment.
+Sediment inflow into stream segments is computed using WaTEM/SEDEM with the extension
+`Output per river segment = 1 <https://watem-sedem.github.io/watem-sedem/model_extensions.html#output-per-river-segment>`_ enabled.
 For more details, refer to the method documentation.
 
 
 .. code-block:: python
     
     # integrate sediment inflow to stream information TXT file
-    analysis.sediment_delivery_to_stream_txt(
-        input_file=r"C:\users\username\input_folder\stream_information.txt",
+    analysis.sediment_delivery_to_stream_json(
+        info_file=r"C:\users\username\input_folder\stream_information.json",
         stream_col='ws_id',
         segsed_file=r"C:\users\username\input_folder\Total sediment segments.txt",
         cumsed_file=r"C:\users\username\input_folder\Cumulative sediment segments.txt",
-        output_file=r"C:\users\username\output_folder\stream_sediment_delivery.txt"
+        json_file=r"C:\users\username\output_folder\stream_with_sediment.json"
     )    
     
     # stream shapefile with sediment inflow information 
-    analysis.sediment_delivery_to_stream_shapefile(
-        stream_file=r"C:\users\username\input_folder\stream.shp",
-        info_file=r"C:\users\username\output_folder\stream_sediment_delivery.txt",
-        output_file=r"C:\users\username\output_folder\stream_sediment_delivery.shp"
+    analysis.sediment_delivery_to_stream_geojson(
+        stream_file=r"C:\users\username\input_folder\stream_lines.shp",
+        sediment_file=rr"C:\users\username\output_folder\stream_with_sediment.json",
+        geojson_file=r"C:\users\username\output_folder\stream_with_sediment.geojson"
     )
 
 
-Once the final stream shapefile containing sediment inflow information is generated, it can be used to compute a summary of upstream metrics for selected dams.
+Once the final stream GeoJSON file containing sediment inflow information is generated, it can be used to compute a summary of upstream metrics for selected dams.
 This includes identifying each dam’s directly connected upstream dams, calculating its controlled drainage area, and estimating the corresponding sediment inflow from that area.
 These metrics provide a comprehensive understanding of how the upstream network structure influences hydrological and sediment contributions to individual dam locations.
 
 .. code-block:: python
 
     network.upstream_metrics_summary(
-        stream_file=r"C:\users\username\output_folder\stream_sediment_delivery.shp",
+        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
         stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
@@ -305,7 +294,7 @@ individual dam performance metrics, and the simulation parameters used.
 .. code-block:: python
     
     network.storage_dynamics_detailed(
-        stream_file=r"C:\users\username\output_folder\stream_sediment_delivery.shp",
+        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
         stream_col='ws_id',
         storage_dict={
             21: 1500000,
@@ -327,7 +316,7 @@ Each file will be named after a dictionary key and will contain the correspondin
 .. code-block:: python
     
     network.storage_dynamics_detailed_save_output(
-        stream_file=r"C:\users\username\output_folder\stream_sediment_delivery.shp",
+        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
         stream_col='ws_id',
         storage_dict={
             21: 1500000,
