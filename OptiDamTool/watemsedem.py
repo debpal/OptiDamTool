@@ -1138,15 +1138,15 @@ class WatemSedem:
         location_col: str,
         dam_list: list[int],
         folder_path: str
-    ) -> geopandas.GeoDataFrame:
+    ) -> dict[str, geopandas.GeoDataFrame]:
 
         '''
-        Generates shapefiles of the selected dam locations and their corresponding effective upstream drainage area polygons,
-        saved to the specified output directory. The output shapefiles include a common column, ``location_col``,
+        Generates GeoJSON files of the selected dam locations and their corresponding effective upstream drainage area polygons,
+        saved to the specified output directory. The output GeoJSON files include a common column, ``location_col``,
         for cross-referencing dam locations.
 
-        - **dam_selected_locations.shp**: Point shapefile of the selected dam locations.
-        - **dam_upstream_drainage_area.shp**: Polygon shapefile of the effective upstream drainage areas for the selected dams,
+        - **dam_location_point.geojson**: Point shapefile of the selected dam locations.
+        - **dam_drainage_polygon.geojson**: Polygon shapefile of the effective upstream drainage areas for the selected dams,
           with an ``area_m2`` column representing the drainage area in square meters.
 
         Parameters
@@ -1170,9 +1170,12 @@ class WatemSedem:
 
         Returns
         -------
-        GeoDataFrame
-            A GeoDataFrame containing polygons of the effective upstream drainage areas for the selected dams,
-            with columns ``location_col`` and ``area_m2``.
+        dict
+            A dictionary with two keys: ``dam_location_point``, a Point GeoDataFrame of dam locations,
+            and ``dam_drainage_polygon``, a Polygon GeoDataFrame of the corresponding drainage areas.
+            Both GeoDataFrames include the ``location_col`` for cross-referencing.
+            The drainage area GeoDataFrame also includes an ``area_m2`` column
+            representing the drainage area in square meters.
         '''
 
         # check existence of folder path
@@ -1189,22 +1192,12 @@ class WatemSedem:
 
         # all dam location GeoDataFrame
         loc_gdf = geopandas.read_file(location_file)
+        loc_gdf = loc_gdf[[location_col, 'geometry']]
 
-        # saving selected dam location GeoDataFrame
+        # selected dam location GeoDataFrame
         dam_gdf = loc_gdf[loc_gdf[location_col].isin(dam_list)].reset_index(drop=True)
-        dam_gdf = dam_gdf.drop(
-            columns=['flwacc']
-        )
-        dam_gdf = dam_gdf.sort_values(
-            by=[location_col],
-            ascending=[True],
-            ignore_index=True
-        )
-        dam_gdf.to_file(
-            filename=os.path.join(folder_path, 'dam_selected_locations.shp')
-        )
 
-        # upstream drainage area
+        # upstream controlled drainage area
         drainage_array = flowdir_object.basins(
             xy=(dam_gdf.geometry.x, dam_gdf.geometry.y),
             ids=dam_gdf[location_col].astype('uint32')
@@ -1222,25 +1215,19 @@ class WatemSedem:
             features=drainage_features,
             crs=raster_profile['crs']
         )
-        drainage_gdf = drainage_gdf.sort_values(
-            by=[location_col],
-            ascending=[True],
-            ignore_index=True
-        )
-        drainage_gdf['area_m2'] = drainage_gdf.geometry.area.round(decimals=1)
+        drainage_gdf['area_m2'] = drainage_gdf.geometry.area
 
-        # saving upstream drainage area GeoDataFrame
-        polygon_schema = {
-            'geometry': 'Polygon',
-            'properties': {
-                location_col: 'int',
-                'area_m2': 'float:19.1'
-            }
+        # output dictionary
+        output = {
+            'dam_location_point': dam_gdf,
+            'dam_drainage_polygon': drainage_gdf
         }
-        drainage_gdf.to_file(
-            filename=os.path.join(folder_path, 'dam_upstream_drainage_area.shp'),
-            schema=polygon_schema,
-            engine='fiona'
-        )
 
-        return drainage_gdf
+        # save the GeoDataFrames
+        for key, gdf in output.items():
+            geojson_file = os.path.join(folder_path, f'{key}.geojson')
+            gdf.to_file(
+                filename=geojson_file
+            )
+
+        return output

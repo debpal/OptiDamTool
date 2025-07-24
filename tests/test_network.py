@@ -116,11 +116,12 @@ def test_netwrok(
             trap_threshold=0.05,
             folder_path=tmp_dir
         )
-        assert len(output) == 3
+        assert len(output) == 4
         # detailed version of storage dynamics for sedimentation
-        output = network.storage_dynamics_detailed_save_output(
+        output = network.storage_dynamics_and_drainage_scenarios(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
             stream_col='ws_id',
+            flwdir_file=os.path.join(data_folder, 'flwdir.tif'),
             storage_dict={
                 21: 1500000,
                 5: 100000,
@@ -133,7 +134,9 @@ def test_netwrok(
             trap_threshold=0.05,
             folder_path=tmp_dir
         )
-        assert len(output) == 7
+        assert output.shape == (10, 3)
+        scenario_files = [i for i in os.listdir(tmp_dir) if i.startswith('year_') and i.endswith('.geojson')]
+        assert len(scenario_files) == 10
 
 
 def test_error_netwrok(

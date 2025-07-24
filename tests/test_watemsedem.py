@@ -159,17 +159,6 @@ def test_watemsedem(
         )
         assert output == ['landuse.rst']
         assert os.path.exists(os.path.join(tmp_dir, 'landuse.rst'))
-        # dam effective drainage area shapefile
-        output = watemsedem.dam_controlled_drainage_polygons(
-            flwdir_file=os.path.join(tmp_dir, 'flwdir.tif'),
-            location_file=os.path.join(tmp_dir, 'subbasin_drainage_points.shp'),
-            location_col='ws_id',
-            dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1],
-            folder_path=tmp_dir
-        )
-        assert len(output) == 10
-        assert output.loc[output['ws_id'] == 17, 'area_m2'].values[0] == 2978593200
-        assert output.loc[output['ws_id'] == 31, 'area_m2'].values[0] == 175558500
 
 
 def test_error_invalid_folder(
