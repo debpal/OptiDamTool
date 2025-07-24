@@ -331,8 +331,31 @@ Each file will be named after a dictionary key and will contain the correspondin
         folder_path=r"C:\users\username\output_folder"
     )
     
-A lite version of this method is also available, providing a simplified simulation with limited output. For complete details, refer to the methods
-:meth:`OptiDamTool.Network.storage_dynamics_lite` and :meth:`OptiDamTool.Network.storage_dynamics_lite_save_output`.
+A lite version of this method is also available, providing a simplified simulation with limited output. For complete details, refer to the method
+:meth:`OptiDamTool.Network.storage_dynamics_lite`.
+
+To generate GeoJSON files of updated dam location points and their controlled drainage polygons when dams become inactive:
+
+.. code-block:: python
+    
+    network.storage_dynamics_and_drainage_scenarios(
+        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
+        stream_col='ws_id',
+        flwdir_file=r"C:\users\username\output_folder\flwdir.tif",
+        storage_dict={
+            21: 1500000,
+            5: 100000,
+            24: 60000,
+            27: 100000,
+            33: 1000000,
+        },
+        year_limit=15,
+        sediment_density=1300,
+        trap_threshold=0.05,
+        folder_path=r"C:\users\username\output_folder"
+    )
+
+
    
 
  

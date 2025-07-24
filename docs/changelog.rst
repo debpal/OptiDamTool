@@ -2,12 +2,23 @@
 Release Notes
 ===============
 
+Version 0.3.3
+---------------
+
+* **Release date:** 24-Jul-2025.
+
+* **Features:** Introduced a new method in the :class:`OptiDamTool.Network` class to generate dam location points and their  
+  controlled drainage polygons when dams become inactive during system-wide storage dynamics simulation.
+
+* **Documentation:** Added a tutorial demonstrating how to use the newly introduced feature.
+
+
 Version 0.3.2
 ---------------
 
 * **Release date:** 20-Jul-2025.
 
-* **Features:** Introduced several new methods within the :class:`OptiDamTool.Network` classes.
+* **Features:** Introduced several new methods within the :class:`OptiDamTool.Network` class.
 
 * **Documentation:** Added a tutorial demonstrating how to use the newly introduced features.
 
@@ -17,7 +28,7 @@ Version 0.2.2
 
 * **Release date:** 10-Jul-2025.
 
-* **Features:** Introduced several new methods within the :class:`OptiDamTool.Network` classes.
+* **Features:** Introduced several new methods within the :class:`OptiDamTool.Network` class.
 
 * **Documentation:** Added a tutorial demonstrating how to use the newly introduced features.
 
@@ -27,7 +38,7 @@ Version 0.2.1
 
 * **Release date:** 23-Jun-2025.
 
-* **Features:** Introduced several new methods within the :class:`OptiDamTool.WatemSedem` classes.
+* **Features:** Introduced several new methods within the :class:`OptiDamTool.WatemSedem` class.
 
 * **Documentation:** Added a tutorial demonstrating how to use the newly introduced features.
 
