@@ -2,6 +2,17 @@
 Release Notes
 ===============
 
+
+Version 0.3.4
+---------------
+
+* **Release date:** 11-Aug-2025.
+
+* **Features:** Merged separate functions related to saving outputs into the corresponding storage dynamics methods: :meth:`OptiDamTool.Network.storage_dynamics_detailed` and :meth:`OptiDamTool.Network.storage_dynamics_lite`.
+
+* **Documentation:** Updated documentation regarding these features.
+
+
 Version 0.3.3
 ---------------
 

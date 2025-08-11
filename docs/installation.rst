@@ -2,20 +2,28 @@
 Installation
 ==============
 
-The installation of the package is straightforward. To prevent conflicts with other Python packages, it is recommended to create a separate Python environment. 
+The installation of the package is straightforward. It can be installed in an existing ``conda`` environment or in a newly created one.  
+To prevent conflicts with other Python packages, it is recommended to create a dedicated ``conda`` environment.
+
 Below are the steps for installing the package using different methods.
 
 
-Create a Python environment
------------------------------
+Set Up a ``conda`` Environment
+------------------------------
 
-Suppose your environment name is my_env, and you can create it by using the following steps through Anaconda distribution.
+You can create a new ``conda`` environment using the Anaconda distribution by following these steps:
 
 .. code-block:: console
-    
-    conda create --name my_env
-    conda activate my_env
+
+    conda create --name <new_env>
+    conda activate <new_env>
     conda install pip
+    
+If you want to install the package in an existing ``conda`` environment, activate it with:
+
+.. code-block:: console
+
+    conda activate <exist_env>
 
 
 Install from PyPI
@@ -27,20 +35,22 @@ Install from PyPI
 
 
 
-Install from GitHub repository
---------------------------------
+Install from GitHub Repository
+------------------------------
+
+To install directly from the GitHub repository, run:
 
 .. code-block:: console
 
     pip install git+https://github.com/debpal/OptiDamTool.git
     
     
-Install from source code in editable mode
---------------------------------------------
+Developer Installation (Editable Mode)
+---------------------------------------
 
-For developers who want to modify the source code or contribute to the package, it is recommended to install in editable mode.
-Navigate to your directory with the `my_env` Python environemnt activated, and run the following commands. 
-This allows you to make changes to the source code, with immediate reflection in the `my_env` environment without requiring reinstallation.
+For developers who want to modify the source code or contribute to the package, it is recommended to install in editable mode.  
+Navigate to your desired directory with your ``conda`` environment activated, and run the following commands.  
+This allows you to make changes to the source code, with immediate reflection in the ``conda`` environment without requiring reinstallation.
 
 .. code-block:: console
 
@@ -49,3 +59,5 @@ This allows you to make changes to the source code, with immediate reflection in
     cd OptiDamTool
     python -m build
     pip install -e .
+    
+

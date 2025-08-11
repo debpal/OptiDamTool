@@ -290,6 +290,9 @@ The simulation continues for a user-defined number of years or terminates early 
 where each key corresponds to a DataFrame containing dam lifespan results, system-wide sedimentation statistics,
 individual dam performance metrics, and the simulation parameters used.
 
+This method also provides an option to save the output dictionary to the input directory as a set of JSON files.
+Each file is named after a dictionary key and contains the corresponding DataFrame.
+
 
 .. code-block:: python
     
@@ -305,31 +308,11 @@ individual dam performance metrics, and the simulation parameters used.
         },
         sediment_density=1300,
         trap_threshold=0.05,
-        year_limit=100
-    )
-   
-
-To save the dictionary output from the above function to the input directory as a set of JSON files, use the following function.
-Each file will be named after a dictionary key and will contain the corresponding DataFrame.
-
-
-.. code-block:: python
-    
-    network.storage_dynamics_detailed_save_output(
-        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
-        stream_col='ws_id',
-        storage_dict={
-            21: 1500000,
-            5: 100000,
-            24: 60000,
-            27: 200000,
-            33: 1000000,
-        },
-        sediment_density=1300,
-        trap_threshold=0.05,
         year_limit=100,
+        write_output=True,
         folder_path=r"C:\users\username\output_folder"
     )
+
     
 A lite version of this method is also available, providing a simplified simulation with limited output. For complete details, refer to the method
 :meth:`OptiDamTool.Network.storage_dynamics_lite`.
