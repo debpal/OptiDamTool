@@ -433,6 +433,34 @@ class Network:
 
         return df
 
+    def _base_storage_df(
+        self,
+        storage_dict: dict[int, float]
+    ) -> pandas.DataFrame:
+
+        '''
+        A private method to convert the input storage dictionary of dams into a DataFrame.
+        '''
+
+        # DataFrame from dictionary
+        df = pandas.DataFrame.from_dict(
+            data=storage_dict,
+            orient='index',
+            columns=['storage_m3']
+        )
+        df.reset_index(
+            names=['dam_id'],
+            inplace=True
+        )
+
+        # storage percentage
+        df['storage_%'] = 100 * df['storage_m3'] / df['storage_m3'].sum()
+
+        # Cummulative storage
+        df['cum_m3'] = df['storage_m3'].cumsum()
+
+        return df
+
     def storage_dynamics_detailed(
         self,
         stream_file: str,
@@ -441,14 +469,17 @@ class Network:
         sediment_density: float,
         trap_threshold: float,
         year_limit: int,
-        brown_d: float = 0.1
+        brown_d: float = 0.1,
+        write_output: bool = False,
+        folder_path: typing.Optional[str] = None
     ) -> dict[str, pandas.DataFrame]:
 
         '''
         Simulates the annual storage dynamics of a dam system influenced by sedimentation,
         and returns a dictionary containing dam lifespan, system-wide statistics,
-        individual metrics, and simulation parameters. The simulation runs for a
-        user-defined number of years, unless all dams become inactive earlier.
+        individual metrics, and simulation parameters.
+
+        The simulation runs for a user-defined number of years, unless all dams become inactive earlier.
         The amount of sediment trapped by a dam is calculated as the product of the sediment inflow
         to the dam and its trap efficiency, which ranges from 0 to 1. At the end of each simulation year,
         dam storage capacities are updated using a mass balance approach based on the trapped sediment.
@@ -473,8 +504,17 @@ class Network:
             and `Pal and Galelli (2019) <https://doi.org/10.1016/j.envsoft.2019.05.007>`_.
             This value may be adjusted to suit user needs.
 
-        The simulation results are returned as a dictionary. A detailed description of its keys and their
-        corresponding DataFrames is provided below.
+        The simulation results are returned as a dictionary and can optionally be saved to the input directory as a set of JSON files.
+        Each JSON file is named after the corresponding dictionary key and contains the related DataFrame.
+
+        A detailed description of the keys and their corresponding DataFrames is provided below.
+
+        - **dam_initial_storage**: A DataFrame with the following columns:
+
+            - ``dam_id``: Stream segment identifier of the dam.
+            - ``storage_m3``: Initial storage capacity of the dam, in cubic meters.
+            - ``storage_%``: Initial storage of the dam as a percentage of the total storage across all dams.
+            - ``cum_m3``: Cumulative initial storage (up to this dam), in cubic meters, to give an idea of the total capacity.
 
         - **dam_lifespan**: A DataFrame with the following columns:
 
@@ -483,7 +523,7 @@ class Network:
 
         - **system_statistics**: A DataFrame that stores system-wide statistics with the following columns:
 
-            - ``run_year``: Start of each simulation year, beginning from 1.
+            - ``start_year``: Start of each simulation year, beginning from 1.
             - ``drainage_%``: Percentage of the total controlled drainage area relative
               to the total stream drainage area, at the beginning of the simulation year.
             - ``storage_%``: Percentage of total remaining storage across all dams relative
@@ -511,18 +551,18 @@ class Network:
                 However, over time, the sum gradually converges to 100% as more dams become inactive,
                 resulting in reduced sediment contributions from upstream dams.
 
-        - **dam_drainage_area**: A DataFrame with columns ``run_year`` and dam identifiers.
+        - **dam_drainage_area**: A DataFrame with columns ``start_year`` and dam identifiers.
           The cell values represent the annual controlled drainage area percentages for each dam,
           relative to the total stream drainage area at the beginning of the simulation year.
 
-        - **dam_remaining_storage**: A DataFrame with columns ``run_year`` and dam identifiers.
+        - **dam_remaining_storage**: A DataFrame with columns ``start_year`` and dam identifiers.
           The cell values represent the annual remaining storage percentages, relative to each dam's initial storage,
           at the beginning of the simulation year.
 
-        - **dam_trap_efficiency**: A DataFrame with columns ``run_year`` and dam identifiers.
+        - **dam_trap_efficiency**: A DataFrame with columns ``start_year`` and dam identifiers.
           The cell values represent the annual trap efficiency values at the beginning of the simulation year.
 
-        - **dam_trapped_sediment**: A DataFrame with columns ``run_year`` and dam identifiers.
+        - **dam_trapped_sediment**: A DataFrame with columns ``start_year`` and dam identifiers.
           The cell values represent the annual sediment trapping percentages, relative to the total sediment input
           across all stream segments, at the end of the simulation year.
 
@@ -530,13 +570,13 @@ class Network:
 
                 The values in ``dam_drainage_area``, ``dam_remaining_storage``, and ``dam_trap_efficiency``
                 are recorded at the beginning of each simulation year. As a result, for each dam, the final recorded
-                value appears in the row where ``run_year`` equals the dam's lifespan **plus one**.
+                value appears in the row where ``start_year`` equals the dam's lifespan **plus one**.
                 This design ensures that the final state of each dam is captured just before its removal from the system,
                 allowing users to understand the conditions that led to its inactivation.
 
         - **simulation_parameters**: A DataFrame that stores simulation parameters at annual time steps, with the following columns:
 
-            - ``run_year``: Start of each simulation year, beginning from 1.
+            - ``start_year``: Start of each simulation year, beginning from 1.
             - ``active_dams``: Number of active dams at the beginning of the simulation year. This column is introduced to track dam count
               because the stream segment identifiers of dams are neither consecutive nor sorted.
             - ``dam_id``: Stream segment identifier of the dam.
@@ -582,6 +622,12 @@ class Network:
             with a mean value of 0.1, which is also the default. Refer to
             `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
 
+        write_output : bool, optional
+            If ``True``, saves the output dictionary to the specified folder. Default is ``False``.
+
+        folder_path : str, optional
+            Path to the folder where JSON files will be saved. Required if ``write_output=True``.
+
         Returns
         -------
         dict
@@ -589,10 +635,22 @@ class Network:
             individual metrics, and simulation parameters.
         '''
 
+        # check validity of folder path
+        if write_output:
+            if folder_path is None:
+                raise ValueError('A valid string of folder_path must be provided when write_output is True.')
+            if not os.path.isdir(folder_path):
+                raise NotADirectoryError('Input folder path is not valid.')
+
         # input location and storage capacity of dams
         base_storage = storage_dict.copy()
         storage_sum = sum(base_storage.values())
         dam_ids = list(storage_dict.keys())
+
+        # base storage DataFrame
+        bs_df = self._base_storage_df(
+            storage_dict=base_storage
+        )
 
         # Stream drainage area and sediment inflow to the stream
         stream_gdf = geopandas.read_file(
@@ -740,22 +798,25 @@ class Network:
                 d_id: sediment_inflow[d_id] - sediment_trap[d_id] for d_id in dam_ids
             }
             # annual DataFrame of dams
+            year_dict = {
+                'ds_conn': connection_downstream,
+                'us_conn': connection_upstream,
+                'drainage_m2': drainage_area,
+                'drainage_%': area_percent,
+                'storage_m3': storage_dict,
+                'storage_%': storage_percent,
+                'trap_efficiency': trap_efficiency,
+                'sedlocal_kg': sediment_local,
+                'sedtotal_kg': sediment_inflow,
+                'sedtrap_kg': sediment_trap,
+                'sedrelease_kg': sediment_release
+            }
             year_df = self._df_from_dict(
-                input_dict={
-                    'ds_conn': connection_downstream,
-                    'us_conn': connection_upstream,
-                    'drainage_m2': drainage_area,
-                    'drainage_%': area_percent,
-                    'storage_m3': storage_dict,
-                    'storage_%': storage_percent,
-                    'trap_efficiency': trap_efficiency,
-                    'sedlocal_kg': sediment_local,
-                    'sedtotal_kg': sediment_inflow,
-                    'sedtrap_kg': sediment_trap,
-                    'sedrelease_kg': sediment_release
-                }
+                input_dict=year_dict
             )
-            year_df = year_df.reset_index(names=['dam_id'])
+            year_df = year_df.reset_index(
+                names=['dam_id']
+            )
             year_df = year_df[~year_df['dam_id'].isin(dam_removal)].reset_index(drop=True)
             year_df.insert(
                 loc=0,
@@ -764,7 +825,7 @@ class Network:
             )
             year_df.insert(
                 loc=0,
-                column='run_year',
+                column='start_year',
                 value=year + 1
             )
             # store annual DataFrame
@@ -796,8 +857,15 @@ class Network:
             ignore_index=True
         )
 
+        # dam lifespan DataFrame
+        life_df.reset_index(
+            names=['dam_id'],
+            inplace=True
+        )
+
         # ouptut dictionary
         output = {
+            'dam_initial_storage': bs_df,
             'dam_lifespan': life_df,
             'system_statistics': system_df,
             'dam_drainage_area': drainage_df,
@@ -806,94 +874,28 @@ class Network:
             'dam_trapped_sediment': sedtrap_df,
             'simulation_parameters': param_df
         }
+        unchanged_keys = [
+            'dam_initial_storage',
+            'dam_lifespan',
+            'simulation_parameters'
+        ]
         for key, df in output.items():
-            if key == 'simulation_parameters':
-                continue
-            elif key == 'dam_lifespan':
-                output[key] = df.reset_index(names=['dam_id'])
-            else:
-                output[key] = df.reset_index(names=['run_year'])
+            if key not in unchanged_keys:
+                df.reset_index(
+                    names=['start_year'],
+                    inplace=True
+                )
+                output[key] = df
 
-        return output
-
-    def storage_dynamics_detailed_save_output(
-        self,
-        stream_file: str,
-        stream_col: str,
-        storage_dict: dict[int, float],
-        sediment_density: float,
-        trap_threshold: float,
-        year_limit: int,
-        folder_path: str,
-        brown_d: float = 0.1
-    ) -> dict[str, pandas.DataFrame]:
-
-        '''
-        Saves the output dictionary generated by the
-        :meth:`OptiDamTool.Network.storage_dynamics_detailed` method
-        to the input directory as a set of JSON files. Each file is named after a dictionary key
-        and contains the corresponding DataFrame.
-
-        Parameters
-        ----------
-        stream_file : str
-            Path to the input stream GeoJSON file, generated by
-            :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_geojson`.
-
-        stream_col : str
-            Name of the column in the stream shapefile containing a unique
-            identifier for each stream segment.
-
-        storage_dict : dict
-            Dictionary mapping dam identifiers to initial storage capacities in cubic meters.
-
-        sediment_density : float
-            Density of sediment in kilograms per cubic meter.
-
-        trap_threshold : float
-            Minimum trap efficiency. Dams with efficiency less than or equal to this value are considered inactive.
-
-        year_limit : int
-            Maximum number of simulation years. Simulation stops earlier if all dams retire.
-
-        folder_path : str
-            Path to the folder where JSON files will be saved.
-
-        brown_d : float, optional
-            Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
-            with a mean value of 0.1, which is also the default. Refer to
-            `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
-
-        Returns
-        -------
-        dict
-            A dictionary containing detailed information on dam lifespan, system-wide statistics,
-            individual metrics, and simulation parameters.
-        '''
-
-        # check validity of folder path
-        if not os.path.isdir(folder_path):
-            raise Exception('Input folder path is not valid.')
-
-        # detailed information of dam system storage dynamics for sedimentation
-        output = self.storage_dynamics_detailed(
-            stream_file=stream_file,
-            stream_col=stream_col,
-            storage_dict=storage_dict,
-            sediment_density=sediment_density,
-            trap_threshold=trap_threshold,
-            year_limit=year_limit,
-            brown_d=brown_d
-        )
-
-        # write output to JSON files
-        for key, df in output.items():
-            json_file = os.path.join(folder_path, f'{key}.json')
-            df.to_json(
-                path_or_buf=json_file,
-                orient='records',
-                lines=True
-            )
+        # write output dictionary to JSON files
+        if write_output and isinstance(folder_path, str):
+            for key, df in output.items():
+                json_file = os.path.join(folder_path, f'{key}.json')
+                df.to_json(
+                    path_or_buf=json_file,
+                    orient='records',
+                    lines=True
+                )
 
         return output
 
@@ -905,13 +907,15 @@ class Network:
         sediment_density: float,
         trap_threshold: float,
         year_limit: int,
-        brown_d: float = 0.1
+        brown_d: float = 0.1,
+        write_output: bool = False,
+        folder_path: typing.Optional[str] = None
     ) -> dict[str, pandas.DataFrame]:
 
         '''
         Simulates a lightweight version of the annual storage dynamics for a dam system
-        influenced by sedimentation, and returns a dictionary with the keys ``dam_lifespan``,
-        ``system_statistics``, ``dam_remaining_storage``, and ``dam_trap_efficiency``.
+        influenced by sedimentation, and returns a dictionary with the keys ``dam_initial_storage``,
+        ``dam_lifespan``, ``system_statistics``, ``dam_remaining_storage``, and ``dam_trap_efficiency``.
         Refer to the method :meth:`OptiDamTool.Network.storage_dynamics_detailed` for full details.
 
         Parameters
@@ -941,6 +945,12 @@ class Network:
             with a mean value of 0.1, which is also the default. Refer to
             `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
 
+        write_output : bool, optional
+            If ``True``, saves the output dictionary to the specified folder. Default is ``False``.
+
+        folder_path : str, optional
+            Path to the folder where JSON files will be saved. Required if ``write_output=True``.
+
         Returns
         -------
         dict
@@ -948,10 +958,22 @@ class Network:
             and storage dynamics and trap efficiency for individual dams.
         '''
 
+        # check validity of folder path
+        if write_output:
+            if folder_path is None:
+                raise ValueError('A valid string of folder_path must be provided when write_output is True.')
+            if not os.path.isdir(folder_path):
+                raise NotADirectoryError('Input folder path is not valid.')
+
         # input location and storage capacity of dams
         base_storage = storage_dict.copy()
         storage_sum = sum(base_storage.values())
         dam_ids = list(storage_dict.keys())
+
+        # base storage DataFrame
+        bs_df = self._base_storage_df(
+            storage_dict=base_storage
+        )
 
         # Stream drainage area and sediment inflow to the stream
         stream_gdf = geopandas.read_file(
@@ -1093,99 +1115,41 @@ class Network:
             for d_id in dam_ids:
                 life_df.loc[d_id, 'life_year'] = life_df.loc[d_id, 'life_year'] + 1
 
+        # dam lifespan DataFrame
+        life_df.reset_index(
+            names=['dam_id'],
+            inplace=True
+        )
+
         # ouptut dictionary
         output = {
+            'dam_initial_storage': bs_df,
             'dam_lifespan': life_df,
             'system_statistics': system_df,
             'dam_remaining_storage': storage_df,
             'dam_trap_efficiency': te_df
         }
+        unchanged_keys = [
+            'dam_initial_storage',
+            'dam_lifespan'
+        ]
         for key, df in output.items():
-            if key == 'dam_lifespan':
-                output[key] = df.reset_index(names=['dam_id'])
-            else:
-                output[key] = df.reset_index(names=['run_year'])
+            if key not in unchanged_keys:
+                df.reset_index(
+                    names=['start_year'],
+                    inplace=True
+                )
+                output[key] = df
 
-        return output
-
-    def storage_dynamics_lite_save_output(
-        self,
-        stream_file: str,
-        stream_col: str,
-        storage_dict: dict[int, float],
-        sediment_density: float,
-        trap_threshold: float,
-        year_limit: int,
-        folder_path: str,
-        brown_d: float = 0.1
-    ) -> dict[str, pandas.DataFrame]:
-
-        '''
-        Saves the output dictionary generated by the
-        :meth:`OptiDamTool.Network.storage_dynamics_lite` method
-        to the input directory as a set of JSON files. Each file is named after
-        a dictionary key and contains the corresponding DataFrame.
-
-        Parameters
-        ----------
-        stream_file : str
-            Path to the input stream GeoJSON file, generated by
-            :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_geojson`.
-
-        stream_col : str
-            Name of the column in the stream shapefile containing a unique
-            identifier for each stream segment.
-
-        storage_dict : dict
-            Dictionary mapping dam identifiers to initial storage capacities in cubic meters.
-
-        sediment_density : float
-            Density of sediment in kilograms per cubic meter.
-
-        trap_threshold : float
-            Minimum trap efficiency. Dams with efficiency less than or equal to this value are considered inactive.
-
-        year_limit : int
-            Maximum number of simulation years. Simulation stops earlier if all dams retire.
-
-        folder_path : str
-            Path to the folder where JSON files will be saved.
-
-        brown_d : float, optional
-            Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
-            with a mean value of 0.1, which is also the default. Refer to
-            `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
-
-        Returns
-        -------
-        dict
-            A dictionary containing detailed information on dam lifespan, system-wide statistics,
-            individual metrics, and simulation parameters.
-        '''
-
-        # check validity of folder path
-        if not os.path.isdir(folder_path):
-            raise Exception('Input folder path is not valid.')
-
-        # detailed information of dam system storage dynamics for sedimentation
-        output = self.storage_dynamics_lite(
-            stream_file=stream_file,
-            stream_col=stream_col,
-            storage_dict=storage_dict,
-            sediment_density=sediment_density,
-            trap_threshold=trap_threshold,
-            year_limit=year_limit,
-            brown_d=brown_d
-        )
-
-        # write output to JSON files
-        for key, df in output.items():
-            json_file = os.path.join(folder_path, f'{key}.json')
-            df.to_json(
-                path_or_buf=json_file,
-                orient='records',
-                lines=True
-            )
+        # write output dictionary to JSON files
+        if write_output and isinstance(folder_path, str):
+            for key, df in output.items():
+                json_file = os.path.join(folder_path, f'{key}.json')
+                df.to_json(
+                    path_or_buf=json_file,
+                    orient='records',
+                    lines=True
+                )
 
         return output
 
@@ -1207,15 +1171,15 @@ class Network:
         to the specified input directory. Refer to :meth:`OptiDamTool.Network.storage_dynamics_detailed`
         for full implementation details.
 
-        Based on the output DataFrame ``system_statistics``, which contains a ``run_year`` column
+        Based on the output DataFrame ``system_statistics``, which contains a ``start_year`` column
         (starting from 1), this method generates GeoDataFrames for dam location points and their
         controlled drainage polygons. These are saved as:
 
-        - ``year_{run_year}_dam_location_point.geojson``
-        - ``year_{run_year}_dam_drainage_polygon.geojson``
+        - ``year_{start_year}_dam_location_point.geojson``
+        - ``year_{start_year}_dam_drainage_polygon.geojson``
 
         Files are created for each year where a dam becomes inactive, along with two additional
-        GeoJSON files for ``run_year = 0``, representing the initial condition.
+        GeoJSON files for ``start_year = 0``, representing the initial condition.
 
         Refer to :meth:`OptiDamTool.WatemSedem.dam_controlled_drainage_polygons` for more details
         on GeoDataFrame generation.
@@ -1224,7 +1188,7 @@ class Network:
         Each point corresponds to a unique stream segment.
 
         All GeoJSON files include the ``stream_col`` field to support cross-referencing with the stream network.
-        The ``year_{run_year}_dam_drainage_polygon.geojson`` files also contain an ``area_%`` column,
+        The ``year_{start_year}_dam_drainage_polygon.geojson`` files also contain an ``area_%`` column,
         which represents the percentage of the total stream drainage area controlled by each dam.
 
         Parameters
@@ -1264,8 +1228,8 @@ class Network:
         Returns
         -------
         DataFrame
-            A DataFrame with columns ``run_year``, ``dam_removed``, and ``dam_active``.
-            The ``run_year`` starts from 0 and helps trace the creation of corresponding GeoJSON files.
+            A DataFrame with columns ``start_year``, ``dam_removed``, and ``dam_active``.
+            The ``start_year`` starts from 0 and helps trace the creation of corresponding GeoJSON files.
         '''
 
         # stream GeoDataFrame
@@ -1293,22 +1257,23 @@ class Network:
         )
 
         # lite version of dam system storage dynamics and save output
-        lite_dict = self.storage_dynamics_detailed_save_output(
+        lite_dict = self.storage_dynamics_detailed(
             stream_file=stream_file,
             stream_col=stream_col,
             storage_dict=storage_dict,
             sediment_density=sediment_density,
             trap_threshold=trap_threshold,
             year_limit=year_limit,
-            folder_path=folder_path,
-            brown_d=brown_d
+            brown_d=brown_d,
+            write_output=True,
+            folder_path=folder_path
         )
 
         # zipped iterator of year, dam_removed, and dam_active
         system_df = lite_dict['system_statistics']
         variable_list = list(
             zip(
-                [0] + system_df['run_year'].tolist(),
+                [0] + system_df['start_year'].tolist(),
                 [[]] + system_df['dam_removed'].tolist(),
                 [list(storage_dict.keys())] + system_df['dam_active'].tolist()
             )
@@ -1350,7 +1315,7 @@ class Network:
         output = pandas.DataFrame(
             data=variable_list,
             columns=[
-                'run_year',
+                'start_year',
                 'dam_removed',
                 'dam_active'
             ]

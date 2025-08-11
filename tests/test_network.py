@@ -20,7 +20,8 @@ def analysis():
 def message():
 
     output = {
-        'error_folder': 'Input folder path is not valid.'
+        'error_folder': 'Input folder path is not valid.',
+        'error_folder_type': 'A valid string of folder_path must be provided when write_output is True.'
     }
 
     return output
@@ -101,7 +102,7 @@ def test_netwrok(
         assert output['controlled_drainage_m2'][17] == 2978593200
         assert round(output['sediment_inflow_kg'][17]) == 534348713
         # lite version of storage dynamics for sedimentation
-        output = network.storage_dynamics_lite_save_output(
+        output = network.storage_dynamics_lite(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
             stream_col='ws_id',
             storage_dict={
@@ -114,9 +115,10 @@ def test_netwrok(
             year_limit=15,
             sediment_density=1300,
             trap_threshold=0.05,
+            write_output=True,
             folder_path=tmp_dir
         )
-        assert len(output) == 4
+        assert len(output) == 5
         # detailed version of storage dynamics for sedimentation
         output = network.storage_dynamics_and_drainage_scenarios(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
@@ -170,27 +172,53 @@ def test_error_netwrok(
             area_dict={6: 1}
         )
     assert exc_info.value.args[0] == 'Mismatch of keys between two dictionaries.'
-    # error of invalid folder path for storage dynamics lite version
+    # error of absent folder path for storage dynamics lite version
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_lite_save_output(
+        network.storage_dynamics_lite(
             stream_file='stream_sediment_delivery.shp',
             stream_col='ws_id',
             storage_dict={15: 2000000},
             year_limit=15,
             sediment_density=1300,
             trap_threshold=0.05,
+            write_output=True
+        )
+    assert exc_info.value.args[0] == message['error_folder_type']
+    # error of absent folder path for storage dynamics detailed version
+    with pytest.raises(Exception) as exc_info:
+        network.storage_dynamics_detailed(
+            stream_file='stream_sediment_delivery.shp',
+            stream_col='ws_id',
+            storage_dict={15: 2000000},
+            year_limit=15,
+            sediment_density=1300,
+            trap_threshold=0.05,
+            write_output=True
+        )
+    assert exc_info.value.args[0] == message['error_folder_type']
+    # error of invalid folder path for storage dynamics lite version
+    with pytest.raises(Exception) as exc_info:
+        network.storage_dynamics_lite(
+            stream_file='stream_sediment_delivery.shp',
+            stream_col='ws_id',
+            storage_dict={15: 2000000},
+            year_limit=15,
+            sediment_density=1300,
+            trap_threshold=0.05,
+            write_output=True,
             folder_path='tmp_dir'
         )
     assert exc_info.value.args[0] == message['error_folder']
     # error of invalid folder path for storage dynamics detailed version
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_detailed_save_output(
+        network.storage_dynamics_detailed(
             stream_file='stream_sediment_delivery.shp',
             stream_col='ws_id',
             storage_dict={15: 2000000},
             year_limit=15,
             sediment_density=1300,
             trap_threshold=0.05,
+            write_output=True,
             folder_path='tmp_dir'
         )
     assert exc_info.value.args[0] == message['error_folder']
