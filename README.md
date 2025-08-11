@@ -1,14 +1,20 @@
 # OptiDamTool
 
-| <big>Status</big> | <big>Description</big> |
-| --- | --- |
-| **PyPI**| ![PyPI - Version](https://img.shields.io/pypi/v/OptiDamTool) ![PyPI - Status](https://img.shields.io/pypi/status/OptiDamTool) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/OptiDamTool) ![PyPI - Wheel](https://img.shields.io/pypi/wheel/OptiDamTool) |
-| **GitHub** | ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/debpal/OptiDamTool) ![GitHub last commit](https://img.shields.io/github/last-commit/debpal/OptiDamTool) [![flake8](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml) [![mypy](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml) [![pytest](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml) |
-| **Codecov** | [![codecov](https://codecov.io/gh/debpal/OptiDamTool/graph/badge.svg?token=PJOAIRHEW6)](https://codecov.io/gh/debpal/OptiDamTool) |
-| **Read** _the_ **Docs** | ![Read the Docs](https://img.shields.io/readthedocs/OptiDamTool) |
-| **PePy** | ![Pepy Total Downloads](https://img.shields.io/pepy/dt/OptiDamTool) |
-| **License** | ![GitHub License](https://img.shields.io/github/license/debpal/OptiDamTool) |
 
+![PyPI - Version](https://img.shields.io/pypi/v/OptiDamTool) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/OptiDamTool) ![PyPI - Status](https://img.shields.io/pypi/status/OptiDamTool) ![PyPI - Format](https://img.shields.io/pypi/format/OptiDamTool)
+![GitHub Release Date](https://img.shields.io/github/release-date/debpal/OptiDamTool)
+
+![GitHub last commit](https://img.shields.io/github/last-commit/debpal/OptiDamTool) ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/debpal/OptiDamTool)
+ [![codecov](https://codecov.io/gh/debpal/OptiDamTool/graph/badge.svg?token=PJOAIRHEW6)](https://codecov.io/gh/debpal/OptiDamTool) 
+
+[![flake8](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml) [![mypy](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml) [![pytest](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml) 
+![Read the Docs](https://img.shields.io/readthedocs/OptiDamTool) 
+
+![Pepy Total Downloads](https://img.shields.io/pepy/dt/OptiDamTool) 
+![GitHub License](https://img.shields.io/github/license/debpal/OptiDamTool) 
+
+
+## About
 
 `OptiDamTool` is a Python package designed for analytics and decision-making in dam management. Conceptualized and released on May 29, 2025, the package offers tools for modeling and analyzing hydrological flow across a network of connected dams.
 
@@ -51,7 +57,7 @@ Provides methods for analyzing simulation outputs and generating insights.
 * Assigns a Coordinate Reference System and the default `GTiff` driver to output Idrisi raster files from a WaTEM/SEDEM simulation.
 
 
-## Easy Installation
+## Installation
 
 To install, use pip:
 
@@ -64,9 +70,9 @@ pip install OptiDamTool
 A brief example of how to start:
 
 ```python
->>> import OptiDamTool
->>> watemsedem = OptiDamTool.WatemSedem()
->>> network = OptiDamTool.Network()
+import OptiDamTool
+watemsedem = OptiDamTool.WatemSedem()
+network = OptiDamTool.Network()
 ```
 
 
