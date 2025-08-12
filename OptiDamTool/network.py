@@ -470,6 +470,7 @@ class Network:
         trap_threshold: float,
         year_limit: int,
         brown_d: float = 0.1,
+        release_threshold: float = 0.95,
         write_output: bool = False,
         folder_path: typing.Optional[str] = None
     ) -> dict[str, pandas.DataFrame]:
@@ -621,6 +622,11 @@ class Network:
             Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
             with a mean value of 0.1, which is also the default. Refer to
             `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
+
+        release_threshold: float, optional
+            Minimum sediment release fraction threshold of the total stream sediment input to stop the simulation.
+            The default is 0.95, meaning 95% of the total stream sediment input is leaving the study area.
+            If the user does not want to consider this parameter in the simulation, set its value to 1.0.
 
         write_output : bool, optional
             If ``True``, saves the output dictionary to the specified folder. Default is ``False``.
@@ -838,7 +844,11 @@ class Network:
             system_df.loc[year + 1, 'sedtrap_%'] = 100 * sum(sediment_trap.values()) / stream_sediment
             release_outlets = sum([sediment_release[d_id] for d_id in dam_ids if connection_downstream[d_id] == -1])
             release_undrainage = stream_sediment - sum(sediment_local.values())
-            system_df.loc[year + 1, 'sedrelease_%'] = 100 * (release_outlets + release_undrainage) / stream_sediment
+            release_fraction = (release_outlets + release_undrainage) / stream_sediment
+            system_df.loc[year + 1, 'sedrelease_%'] = 100 * release_fraction
+            # break if sediment release cross a certain threshold of total stream sediment inputs
+            if release_fraction > release_threshold:
+                break
             # annual filling of dam storage due to sediment trapping
             storage_filling = {
                 d_id: sediment_trap[d_id] / sediment_density for d_id in dam_ids
@@ -908,6 +918,7 @@ class Network:
         trap_threshold: float,
         year_limit: int,
         brown_d: float = 0.1,
+        release_threshold: float = 0.95,
         write_output: bool = False,
         folder_path: typing.Optional[str] = None
     ) -> dict[str, pandas.DataFrame]:
@@ -944,6 +955,11 @@ class Network:
             Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
             with a mean value of 0.1, which is also the default. Refer to
             `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
+
+        release_threshold: float, optional
+            Minimum sediment release fraction threshold of the total stream sediment input to stop the simulation.
+            The default is 0.95, meaning 95% of the total stream sediment input is leaving the study area.
+            If the user does not want to consider this parameter in the simulation, set its value to 1.0.
 
         write_output : bool, optional
             If ``True``, saves the output dictionary to the specified folder. Default is ``False``.
@@ -1102,7 +1118,11 @@ class Network:
             system_df.loc[year + 1, 'sedtrap_%'] = 100 * sum(sediment_trap.values()) / stream_sediment
             release_outlets = sum([sediment_release[d_id] for d_id in dam_ids if connection_downstream[d_id] == -1])
             release_undrainage = stream_sediment - sum(sediment_local.values())
-            system_df.loc[year + 1, 'sedrelease_%'] = 100 * (release_outlets + release_undrainage) / stream_sediment
+            release_fraction = (release_outlets + release_undrainage) / stream_sediment
+            system_df.loc[year + 1, 'sedrelease_%'] = 100 * release_fraction
+            # break if sediment release cross a certain threshold of total stream sediment inputs
+            if release_fraction > release_threshold:
+                break
             # annual filling of dam storage due to sediment trapping
             storage_filling = {
                 d_id: sediment_trap[d_id] / sediment_density for d_id in dam_ids
