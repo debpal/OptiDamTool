@@ -18,6 +18,7 @@ If no errors are raised, the installation is successful.
     watemsedem = OptiDamTool.WatemSedem()
     network = OptiDamTool.Network()
     analysis = OptiDamTool.Analysis()
+    visual = OptiDamTool.Visual()
 
 
 .. _ref_dem_to_stream:
@@ -270,6 +271,7 @@ These metrics provide a comprehensive understanding of how the upstream network 
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
 
+.. _ref_dam_system_storgae_dynamics:
 
 Dam System Storage Dynamics for Sedimentation
 ---------------------------------------------------
@@ -340,8 +342,21 @@ To generate GeoJSON files of updated dam location points and their controlled dr
 
 
    
-Plot data
---------------
+Visualization of Dam System Performance
+-------------------------------------------
 
-Plot the data
- 
+To generate a figure of dam system statistics, including plots of remaining storage, sediment trapped, and sediment released, use the following code:
+
+.. code-block:: python
+
+    visual.system_statistics(
+        json_file=r"C:\users\username\output_folder\system_statistics.json",
+        figure_file=r"C:\users\username\output_folder\system_statistics.png",
+        xtick_gap=1
+    )
+
+The following figure illustrates the dam system statistics used in the :ref:`ref_dam_system_storgae_dynamics` section.
+
+.. image:: _static/system_statistics.png
+   :align: center
+   
