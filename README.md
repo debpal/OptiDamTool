@@ -2,16 +2,20 @@
 
 
 ![PyPI - Version](https://img.shields.io/pypi/v/OptiDamTool) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/OptiDamTool) ![PyPI - Status](https://img.shields.io/pypi/status/OptiDamTool) ![PyPI - Format](https://img.shields.io/pypi/format/OptiDamTool)
-![GitHub Release Date](https://img.shields.io/github/release-date/debpal/OptiDamTool)
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/debpal/OptiDamTool) ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/debpal/OptiDamTool)
  [![codecov](https://codecov.io/gh/debpal/OptiDamTool/graph/badge.svg?token=PJOAIRHEW6)](https://codecov.io/gh/debpal/OptiDamTool) 
 
 [![flake8](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml) [![mypy](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml) [![pytest](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml) 
-![Read the Docs](https://img.shields.io/readthedocs/OptiDamTool) 
+![Read the Docs](https://img.shields.io/readthedocs/OptiDamTool)
+
+
+![GitHub Release Date](https://img.shields.io/github/release-date/debpal/OptiDamTool)
+![GitHub Created At](https://img.shields.io/github/created-at/debpal/OptiDamTool)
+
 
 ![Pepy Total Downloads](https://img.shields.io/pepy/dt/OptiDamTool) 
-![GitHub License](https://img.shields.io/github/license/debpal/OptiDamTool) 
+![PyPI - License](https://img.shields.io/pypi/l/OptiDamTool) 
 
 
 ## About
@@ -55,6 +59,13 @@ Provides methods for analyzing simulation outputs and generating insights.
 * Generates stream shapefiles with comprehensive information of each segment's drainage area and sediment input.
 * Summarizes total sediment dynamics for the model region.
 * Assigns a Coordinate Reference System and the default `GTiff` driver to output Idrisi raster files from a WaTEM/SEDEM simulation.
+
+
+### `OptiDamTool.Visual` 
+Provides methods for visualizing simulation outputs.
+
+* Generates figures showing dam system-level statistics, including plots of remaining storage, sediment trapped, and sediment released.
+
 
 
 ## Installation
