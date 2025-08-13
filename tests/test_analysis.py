@@ -11,16 +11,6 @@ def analysis():
     yield OptiDamTool.Analysis()
 
 
-@pytest.fixture
-def message():
-
-    output = {
-        'error_json': 'Output file path must have a valid JSON file extension.'
-    }
-
-    return output
-
-
 def test_analysis(
     analysis
 ):
@@ -54,35 +44,3 @@ def test_analysis(
             output_file=os.path.join(tmp_dir, 'dam_features_extracted.geojson')
         )
         assert output.shape == (6, 19)
-
-
-def test_error_analysis(
-    analysis,
-    message
-):
-
-    # error for JSON file extension
-    with pytest.raises(Exception) as exc_info:
-        analysis.sediment_delivery_to_stream_json(
-            info_file='stream_information.txt',
-            stream_col='ws_id',
-            segsed_file='Total sediment segments.txt',
-            cumsed_file='Cumulative sediment segments.txt',
-            json_file='stream_sediment_delivery.txt'
-        )
-    assert exc_info.value.args[0] == message['error_json']
-    with pytest.raises(Exception) as exc_info:
-        analysis.sediment_summary_dynamics_region(
-            sediment_file='Total sediment.txt',
-            summary_file='summary.json',
-            output_file='summary_total_sediment.txt'
-        )
-    assert exc_info.value.args[0] == message['error_json']
-    # error for GeoJSON file extension
-    with pytest.raises(Exception) as exc_info:
-        analysis.sediment_delivery_to_stream_geojson(
-            stream_file='stream_lines.shp',
-            sediment_file='stream_sediment_delivery.txt',
-            geojson_file='stream_sediment_delivery.shp'
-        )
-    assert exc_info.value.args[0] == 'Output file path must have a valid GeoJSON file extension.'

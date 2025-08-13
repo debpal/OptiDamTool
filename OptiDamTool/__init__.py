@@ -1,13 +1,15 @@
 from .watemsedem import WatemSedem
 from .network import Network
 from .analysis import Analysis
+from .visual import Visual
 
 
 __all__ = [
     'WatemSedem',
     'Network',
-    'Analysis'
+    'Analysis',
+    'Visual'
 ]
 
 
-__version__ = '0.3.4'
+__version__ = '0.3.5'

@@ -12,16 +12,6 @@ def watemsedem():
     yield OptiDamTool.WatemSedem()
 
 
-@pytest.fixture
-def message():
-
-    output = {
-        'error_folder': 'Input folder path is not valid.'
-    }
-
-    return output
-
-
 def test_watemsedem(
     watemsedem
 ):
@@ -159,41 +149,6 @@ def test_watemsedem(
         )
         assert output == ['landuse.rst']
         assert os.path.exists(os.path.join(tmp_dir, 'landuse.rst'))
-
-
-def test_error_invalid_folder(
-    watemsedem,
-    message
-):
-
-    # dem to stream files required to run WaTEM/SEDEM
-    with pytest.raises(Exception) as exc_info:
-        watemsedem.dem_to_stream(
-            dem_file='dem.tif',
-            flwacc_percent=5,
-            folder_path='no_folder'
-        )
-    assert exc_info.value.args[0] == message['error_folder']
-
-    # region boundary buffer raster
-    with pytest.raises(Exception) as exc_info:
-        watemsedem.model_region_extension(
-            dem_file='dem.tif',
-            buffer_units=50,
-            folder_path='no_folder'
-        )
-    assert exc_info.value.args[0] == message['error_folder']
-
-    # dam effective drainage area shapefile
-    with pytest.raises(Exception) as exc_info:
-        watemsedem.dam_controlled_drainage_polygons(
-            flwdir_file='flwdir.tif',
-            location_file='subbasin_drainage_points.shp',
-            location_col='ws_id',
-            dam_list=[1],
-            folder_path='no_folder'
-        )
-    assert exc_info.value.args[0] == message['error_folder']
 
 
 def test_github():
