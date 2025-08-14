@@ -87,7 +87,6 @@ def test_error_netwrok(
     with pytest.raises(Exception) as exc_info:
         network.connectivity_adjacent_downstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
-            stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 31, 17, 24, 27, 2, 13, 1]
         )
     assert exc_info.value.args[0] == 'Duplicate stream identifiers found in the input dam list.'
@@ -95,7 +94,6 @@ def test_error_netwrok(
     with pytest.raises(Exception) as exc_info:
         network.connectivity_adjacent_upstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
-            stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1, 34]
         )
     assert exc_info.value.args[0] == 'Invalid stream identifier 34 for a dam.'
@@ -110,7 +108,6 @@ def test_error_netwrok(
     with pytest.raises(Exception) as exc_info:
         network.storage_dynamics_lite(
             stream_file='stream_sediment_delivery.shp',
-            stream_col='ws_id',
             storage_dict={15: 2000000},
             year_limit=15,
             sediment_density=1300,
@@ -122,7 +119,6 @@ def test_error_netwrok(
     with pytest.raises(Exception) as exc_info:
         network.storage_dynamics_detailed(
             stream_file='stream_sediment_delivery.shp',
-            stream_col='ws_id',
             storage_dict={15: 2000000},
             year_limit=15,
             sediment_density=1300,
@@ -134,7 +130,6 @@ def test_error_netwrok(
     with pytest.raises(Exception) as exc_info:
         network.storage_dynamics_lite(
             stream_file='stream_sediment_delivery.shp',
-            stream_col='ws_id',
             storage_dict={15: 2000000},
             year_limit=15,
             sediment_density=1300,
@@ -147,7 +142,6 @@ def test_error_netwrok(
     with pytest.raises(Exception) as exc_info:
         network.storage_dynamics_detailed(
             stream_file='stream_sediment_delivery.shp',
-            stream_col='ws_id',
             storage_dict={15: 2000000},
             year_limit=15,
             sediment_density=1300,
@@ -167,7 +161,6 @@ def test_error_analysis(
     with pytest.raises(Exception) as exc_info:
         analysis.sediment_delivery_to_stream_json(
             info_file='stream_information.txt',
-            stream_col='ws_id',
             segsed_file='Total sediment segments.txt',
             cumsed_file='Cumulative sediment segments.txt',
             json_file='stream_sediment_delivery.txt'

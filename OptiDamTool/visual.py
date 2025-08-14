@@ -1,6 +1,7 @@
 import matplotlib
 import matplotlib.pyplot
 import pandas
+import geopandas
 import os
 
 
@@ -9,6 +10,109 @@ class Visual:
     '''
     Provides utilities for visualizing data.
     '''
+
+    def dam_location_in_stream(
+        self,
+        stream_file: str,
+        dam_file: str,
+        figure_file: str,
+        fig_width: float = 6,
+        fig_height: float = 6,
+        fig_title: str = 'Dam locations with stream indentifiers',
+        line_width: float = 1,
+        dam_marker: str = 'o',
+        dam_markersize: float = 50,
+        dam_fontsize: int = 9,
+        title_fontsize: int = 15,
+        gui_window: bool = True
+    ) -> matplotlib.figure.Figure:
+
+        '''
+        .. warning::
+
+            This function is under development and should not be used.
+        '''
+
+        # stream GeoDataFrame
+        stream_gdf = geopandas.read_file(
+            filename=stream_file
+        )
+
+        # dam GeoDataFrame
+        dam_gdf = geopandas.read_file(
+            filename=dam_file
+        )
+
+        # figure plot
+        figure = matplotlib.pyplot.figure(
+            figsize=(fig_width, fig_height)
+        )
+        subplot = figure.subplots(1, 1)
+
+        # check figure file extension
+        fig_ext = os.path.splitext(figure_file)[-1][1:]
+        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
+            raise ValueError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
+            )
+
+        # plot data
+        stream_gdf.plot(
+            ax=subplot,
+            color='deepskyblue',
+            linewidth=line_width,
+            zorder=1
+        )
+        dam_gdf.plot(
+            ax=subplot,
+            color='orangered',
+            marker=dam_marker,
+            markersize=dam_markersize,
+            zorder=2
+        )
+
+        # remove ticks and labels from both axes
+        subplot.tick_params(
+            axis='both',
+            which='both',
+            left=False,
+            bottom=False,
+            labelleft=False,
+            labelbottom=False
+        )
+
+        # label each dam with its stream identifiers
+        for dam_id, dam_coords in zip(dam_gdf['ws_id'], dam_gdf.geometry):
+            xc, yc = dam_coords.x, dam_coords.y
+            subplot.text(
+                xc, yc,
+                str(dam_id),
+                fontsize=dam_fontsize,
+                fontweight='bold',
+                ha='left',
+                va='center',
+                color='black',
+                zorder=3
+            )
+
+        # figure title
+        figure.suptitle(
+            fig_title,
+            fontsize=title_fontsize
+        )
+
+        # saving figure
+        figure.tight_layout()
+        figure.savefig(
+            fname=figure_file,
+            bbox_inches='tight'
+        )
+
+        # figure display
+        matplotlib.pyplot.show() if gui_window else None
+        matplotlib.pyplot.close(figure)
+
+        return figure
 
     def system_statistics(
         self,

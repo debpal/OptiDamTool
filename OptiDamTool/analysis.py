@@ -17,7 +17,6 @@ class Analysis:
     def sediment_delivery_to_stream_json(
         self,
         info_file: str,
-        stream_col: str,
         segsed_file: str,
         cumsed_file: str,
         json_file: str
@@ -32,10 +31,6 @@ class Analysis:
         info_file : str
             Path to the input information TXT file ``stream_information.txt``, produced by
             :meth:`OptiDamTool.WatemSedem.dem_to_stream`.
-
-        stream_col : str
-            Name of the column in the ``stream_information.txt`` file containing
-            a unique identifier for each stream segment.
 
         segsed_file : str
             Path to the input TXT file ``Total sediment segments.txt``,
@@ -71,6 +66,7 @@ class Analysis:
         )
 
         # integrating sediment delivery to stream segments
+        stream_col = 'ws_id'
         sediment_df = pandas.read_csv(
             filepath_or_buffer=segsed_file,
             skiprows=1,

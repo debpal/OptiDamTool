@@ -200,14 +200,12 @@ A value of -1 indicates no downstream connectivity, while an empty list indicate
     # adjacent downstream connectivity
     network.connectivity_adjacent_downstream_dam(
         stream_file=r"C:\users\username\input_folder\stream_lines.shp",
-        stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
     
     # adjacent upstream connectivity
     network.connectivity_adjacent_upstream_dam(
         stream_file=r"C:\users\username\input_folder\stream_lines.shp",
-        stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
     
@@ -224,7 +222,6 @@ The following method calculate these areas.
     
     network.controlled_drainage_area(
         stream_file=r"C:\users\username\input_folder\stream_lines.shp",
-        stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
     
@@ -245,7 +242,6 @@ For more details, refer to the method documentation.
     # integrate sediment inflow to stream information TXT file
     analysis.sediment_delivery_to_stream_json(
         info_file=r"C:\users\username\input_folder\stream_information.json",
-        stream_col='ws_id',
         segsed_file=r"C:\users\username\input_folder\Total sediment segments.txt",
         cumsed_file=r"C:\users\username\input_folder\Cumulative sediment segments.txt",
         json_file=r"C:\users\username\output_folder\stream_with_sediment.json"
@@ -267,7 +263,6 @@ These metrics provide a comprehensive understanding of how the upstream network 
 
     network.upstream_metrics_summary(
         stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
-        stream_col='ws_id',
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
 
@@ -300,7 +295,6 @@ Each file is named after a dictionary key and contains the corresponding DataFra
     
     network.storage_dynamics_detailed(
         stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
-        stream_col='ws_id',
         storage_dict={
             21: 1500000,
             5: 100000,
@@ -325,7 +319,6 @@ To generate GeoJSON files of updated dam location points and their controlled dr
     
     network.storage_dynamics_and_drainage_scenarios(
         stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
-        stream_col='ws_id',
         flwdir_file=r"C:\users\username\output_folder\flwdir.tif",
         storage_dict={
             21: 1500000,

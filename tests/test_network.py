@@ -35,7 +35,6 @@ def test_netwrok(
         # adjacent downstream connectivity
         output = network.connectivity_adjacent_downstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
-            stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
         )
         assert output[17] == 21
@@ -43,7 +42,6 @@ def test_netwrok(
         # adjacent upstream connectivity
         output = network.connectivity_adjacent_upstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
-            stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1],
             sort_dam=True
         )
@@ -52,7 +50,6 @@ def test_netwrok(
         # controlled drainage area
         output = network.controlled_drainage_area(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
-            stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
         )
         assert output[17] == 2978593200
@@ -60,7 +57,6 @@ def test_netwrok(
         # sediment delivery to stream
         output = analysis.sediment_delivery_to_stream_json(
             info_file=os.path.join(data_folder, 'stream_information.json'),
-            stream_col='ws_id',
             segsed_file=os.path.join(data_folder, 'Total sediment segments.txt'),
             cumsed_file=os.path.join(data_folder, 'Cumulative sediment segments.txt'),
             json_file=os.path.join(tmp_dir, 'stream_sediment_delivery.json')
@@ -78,7 +74,6 @@ def test_netwrok(
         # sediment inflow from drainage area
         output = network.sediment_inflow_from_drainage_area(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
         )
         assert round(output[17]) == 534348713
@@ -86,7 +81,6 @@ def test_netwrok(
         # upstream metric summary of dams
         output = network.upstream_metrics_summary(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            stream_col='ws_id',
             dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
         )
         assert len(output) == 3
@@ -100,7 +94,6 @@ def test_netwrok(
         # lite version of storage dynamics for sedimentation
         output = network.storage_dynamics_lite(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            stream_col='ws_id',
             storage_dict={
                 21: 1500000,
                 5: 100000,
@@ -118,7 +111,6 @@ def test_netwrok(
         # detailed version of storage dynamics for sedimentation
         output = network.storage_dynamics_and_drainage_scenarios(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            stream_col='ws_id',
             flwdir_file=os.path.join(data_folder, 'flwdir.tif'),
             storage_dict={
                 21: 1500000,

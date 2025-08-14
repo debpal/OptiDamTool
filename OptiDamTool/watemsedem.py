@@ -162,8 +162,7 @@ class WatemSedem:
         self,
         dem_file: str,
         flwacc_percent: float,
-        folder_path: str,
-        flw_col: str = 'ws_id'
+        folder_path: str
     ) -> geopandas.GeoDataFrame:
 
         '''
@@ -193,8 +192,8 @@ class WatemSedem:
         - **subbasin_drainage_points.shp**: Point shapefile contains a column ``flwacc`` that represents the flow accumulation at each drainage point.
           The flow accumulation values are calculated from a raster in which all valid DEM cells are converted to 1.
         - **stream_lines.shp**: LineString shapefile with columns:
-            - ``flw_col``: Unique identifier of each stream segment
-            - ``ds_id``: Identifies of the adjacent downstream segment (-1 if no downstream connectivity)
+            - ``ws_id``: Unique identifier of each stream segment.
+            - ``ds_id``: Identifies of the adjacent downstream segment (-1 if no downstream connectivity).
             - ``isa_m2``: Individual subbasin area of the segment (renamed ``area_m2`` from ``subbasins.shp``), in sqaure meters.
             - ``flwacc``: Flow accumulation value fetched from ``subbasin_drainage_points.shp``.
             - ``csa_m2``: Cumulative subbasin area from upstream heads, in square meters.
@@ -226,10 +225,6 @@ class WatemSedem:
         folder_path : str
             Path to the directory where all output files will be saved.
 
-        flw_col : str, optional
-            Name of the identifier column used for cross-referencing in shapefiles.
-            Default is 'ws_id'.
-
         Returns
         -------
         GeoDataFrame
@@ -241,6 +236,7 @@ class WatemSedem:
             raise Exception('Input folder path is not valid.')
 
         # delineation files
+        flw_col = 'ws_id'
         self.watershed.dem_delineation(
             dem_file=dem_file,
             outlet_type='single',
