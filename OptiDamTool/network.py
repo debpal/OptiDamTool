@@ -1256,7 +1256,6 @@ class Network:
                     gdf_dict = WatemSedem().dam_controlled_drainage_polygons(
                         flwdir_file=flwdir_file,
                         location_file=location_file,
-                        location_col='ws_id',
                         dam_list=dam_active,
                         folder_path=folder_path
                     )
