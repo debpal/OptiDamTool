@@ -68,7 +68,6 @@ def test_error_watemsedem(
         watemsedem.dam_controlled_drainage_polygons(
             flwdir_file='flwdir.tif',
             location_file='subbasin_drainage_points.shp',
-            location_col='ws_id',
             dam_list=[1],
             folder_path='no_folder'
         )
