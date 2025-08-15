@@ -335,14 +335,14 @@ To generate GeoJSON files of updated dam location points and their controlled dr
 
 
    
-Visualization of Dam System and its Performance
+Visualization of Dam System Simulation
 ------------------------------------------------------
 
 
 This section presents visualizations of the simulated results generated in the :ref:`ref_dam_system_storgae_dynamics` section.
 
 
-To generate a figure showing the initial dam locations along the stream path, use the following code:
+To create a figure showing dam locations along the stream path, use the following code:
 
 .. code-block:: python
 
@@ -351,22 +351,56 @@ To generate a figure showing the initial dam locations along the stream path, us
         dam_file=r"C:\Users\username\output_folder\year_0_dam_location_point.geojson",
         figure_file=r"C:\users\username\output_folder\dam_location_in_stream.png"
     )
+    
+    
+To generate a figure showing the annual remaining storage of each dam in the system at the beginning of the year, use the following code:
+
+.. code-block:: python
+
+    visual.dam_remaining_storage(
+        json_file=r"C:\users\username\output_folder\dam_remaining_storage.json",
+        figure_file=r"C:\users\username\output_folder\dam_remaining_storage.png",
+        xtick_gap=1
+    )
+    
+To generate a figure showing the annual sediment trapping percentage by each dam in the system,
+relative to the total sediment input across all stream segments during the year, use the following code:
+
+.. code-block:: python
+
+    visual.dam_trapped_sediment(
+        json_file=r"C:\users\username\output_folder\dam_trapped_sediment.json",
+        figure_file=r"C:\users\username\output_folder\dam_trapped_sediment.png",
+        xtick_gap=1,
+        ytick_gap=4,
+        ybottom_offset=-1
+    )
 
 
-To generate a dam system statistics figure with plots for controlled drainage area, remaining storage, sediment trapped, and sediment released, use the following code:
+To generate a figure showing dam system-level statistics, including controlled drainage area, remaining storage, sediment trapped, and sediment released, use the following code:
 
 .. code-block:: python
 
     visual.system_statistics(
         json_file=r"C:\users\username\output_folder\system_statistics.json",
         figure_file=r"C:\users\username\output_folder\system_statistics.png",
+        ytop_offset=5,
         xtick_gap=1
     )
+
 
 The following figures are the outputs produced by the above code.
 
 
 .. image:: _static/dam_location_in_stream.png
+    :scale: 75%
+    :align: center
+    
+.. image:: _static/dam_remaining_storage.png
+    :scale: 75%
+    :align: center
+    
+.. image:: _static/dam_trapped_sediment.png
     :scale: 75%
     :align: center
 
