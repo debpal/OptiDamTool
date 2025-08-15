@@ -64,16 +64,22 @@ Provides methods for analyzing simulation outputs and generating insights.
 ### `OptiDamTool.Visual` 
 Provides methods for visualizing simulation outputs.
 
+
 * Creates a figure showing dam locations along the stream path.
-* Generates a figure showing dam system-level statistics, including controlled drainage area, remaining storage, sediment trapped, and sediment released.
+* Generates a figure showing the annual remaining storage of each dam in the system at the beginning of the year.
+* Generates a figure showing the annual sediment trapping percentage by each dam in the system, relative to the total sediment input across all stream segments during the year.
+* Produces a figure showing dam system-level statistics, including controlled drainage area, remaining storage, sediment trapped, and sediment released.
+
 
 
 The examples below show typical outputs produced by these visualization methods:
 
 
 <div align="center">
-  <img src="https://github.com/debpal/OptiDamTool/raw/main/docs/_static/dam_location_in_stream.png" width="40%">
-  <img src="https://github.com/debpal/OptiDamTool/raw/main/docs/_static/system_statistics.png" width="75%">
+    <img src="https://github.com/debpal/OptiDamTool/raw/main/docs/_static/dam_location_in_stream.png" width="40%">
+    <img src="https://github.com/debpal/OptiDamTool/raw/main/docs/_static/dam_remaining_storage.png" width="60%">
+    <img src="https://github.com/debpal/OptiDamTool/raw/main/docs/_static/dam_trapped_sediment.png" width="60%">
+    <img src="https://github.com/debpal/OptiDamTool/raw/main/docs/_static/system_statistics.png" width="60%">
 </div>
 
 
