@@ -186,10 +186,30 @@ def test_error_visual(
     visual
 ):
 
-    # error for invaid figure file extension
+    # error for invaid figure file extension for dam location in stream
+    with pytest.raises(Exception) as exc_info:
+        visual.dam_location_in_stream(
+            stream_file='stream.geojson',
+            dam_file='dam.geojson',
+            figure_file='dam_location_in_stream.pn'
+        )
+    assert exc_info.value.args[0] == 'Input figure_file extension ".pn" is not supported for saving the figure.'
+    # error for invaid figure file extension for system statistics
     with pytest.raises(Exception) as exc_info:
         visual.system_statistics(
             json_file='system_statistics.json',
             figure_file='system_statistics.pn'
         )
     assert exc_info.value.args[0] == 'Input figure_file extension ".pn" is not supported for saving the figure.'
+
+    # error if all plot options are set to False for system statistics
+    with pytest.raises(Exception) as exc_info:
+        visual.system_statistics(
+            json_file='system_statistics.json',
+            figure_file='system_statistics.png',
+            plot_storage=False,
+            plot_trap=False,
+            plot_release=False,
+            plot_drainage=False
+        )
+    assert exc_info.value.args[0] == 'At least one plot type must be set to True.'

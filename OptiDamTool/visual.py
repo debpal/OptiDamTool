@@ -1,4 +1,5 @@
 import matplotlib
+import matplotlib.lines
 import matplotlib.pyplot
 import pandas
 import geopandas
@@ -18,30 +19,71 @@ class Visual:
         figure_file: str,
         fig_width: float = 6,
         fig_height: float = 6,
-        fig_title: str = 'Dam locations with stream indentifiers',
-        line_width: float = 1,
+        fig_title: str = 'Dam locations with identifiers',
+        stream_linewidth: float = 1,
         dam_marker: str = 'o',
-        dam_markersize: float = 50,
-        dam_fontsize: int = 9,
+        dam_markersize: int = 50,
+        plot_damid: bool = True,
+        damid_fontsize: int = 9,
         title_fontsize: int = 15,
         gui_window: bool = True
     ) -> matplotlib.figure.Figure:
 
         '''
-        .. warning::
+        Generate a figure showing dam locations along the stream path, with an option to
+        display the stream segment identifiers for each dam.
 
-            This function is under development and should not be used.
+        Parameters
+        ----------
+        stream_file : str
+            Path to the input stream vector file, created by one of:
+
+            - :meth:`OptiDamTool.WatemSedem.dem_to_stream`
+            - :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_geojson`
+
+        dam_file : str
+            Path to the input dam location vector file
+            ``year_<start_year>_dam_location_point.geojson``, created by
+            :meth:`OptiDamTool.Network.storage_dynamics_and_drainage_scenarios`.
+
+        figure_file : str
+            Path to the output figure file.
+
+        fig_width : float, optional
+            Width of the figure in inches. Default is 6.
+
+        fig_height : float, optional
+            Height of the figure in inches. Default is 6.
+
+        fig_title : str, optional
+            Title of the figure. Default is "Dam locations and identifiers".
+
+        stream_linewidth : float, optional
+            Width of the stream lines. Default is 1.
+
+        dam_marker : str, optional
+            Marker style for dam points. Default is 'o'.
+
+        dam_markersize : int, optional
+            Marker size for dam points. Default is 50.
+
+        plot_damid : bool, optional
+            If True (default), plot stream segment identifiers for dams.
+
+        damid_fontsize : int, optional
+            Font size for stream segment identifier labels. Default is 9.
+
+        title_fontsize : int, optional
+            Font size of the figure title. Default is 15.
+
+        gui_window : bool, optional
+            If True (default), open a graphical user interface window for the plot.
+
+        Returns
+        -------
+        Figure
+            A Figure object containing the dam locations plotted on the stream path.
         '''
-
-        # stream GeoDataFrame
-        stream_gdf = geopandas.read_file(
-            filename=stream_file
-        )
-
-        # dam GeoDataFrame
-        dam_gdf = geopandas.read_file(
-            filename=dam_file
-        )
 
         # figure plot
         figure = matplotlib.pyplot.figure(
@@ -56,11 +98,21 @@ class Visual:
                 f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
             )
 
+        # stream GeoDataFrame
+        stream_gdf = geopandas.read_file(
+            filename=stream_file
+        )
+
+        # dam GeoDataFrame
+        dam_gdf = geopandas.read_file(
+            filename=dam_file
+        )
+
         # plot data
         stream_gdf.plot(
             ax=subplot,
             color='deepskyblue',
-            linewidth=line_width,
+            linewidth=stream_linewidth,
             zorder=1
         )
         dam_gdf.plot(
@@ -81,19 +133,50 @@ class Visual:
             labelbottom=False
         )
 
-        # label each dam with its stream identifiers
-        for dam_id, dam_coords in zip(dam_gdf['ws_id'], dam_gdf.geometry):
-            xc, yc = dam_coords.x, dam_coords.y
-            subplot.text(
-                xc, yc,
-                str(dam_id),
-                fontsize=dam_fontsize,
-                fontweight='bold',
-                ha='left',
-                va='center',
-                color='black',
-                zorder=3
-            )
+        # plot stream segment identifiers of dams
+        if plot_damid:
+            for dam_id, dam_coords in zip(dam_gdf['ws_id'], dam_gdf.geometry):
+                # xc, yc = dam_coords.x, dam_coords.y
+                subplot.text(
+                    x=dam_coords.x,
+                    y=dam_coords.y,
+                    s=str(dam_id),
+                    fontsize=damid_fontsize,
+                    fontweight='bold',
+                    ha='left',
+                    va='center',
+                    color='black',
+                    zorder=3
+                )
+
+        # stream legend handle
+        stream_legend = matplotlib.lines.Line2D(
+            xdata=[0],
+            ydata=[0],
+            color='deepskyblue',
+            linewidth=2,
+            label='Stream'
+        )
+
+        # dam legend handle
+        dam_legend = matplotlib.lines.Line2D(
+            xdata=[0],
+            ydata=[0],
+            color='orangered',
+            marker=dam_marker,
+            markersize=10,
+            linestyle='None',
+            label='Dam'
+        )
+
+        # add custom legend
+        subplot.legend(
+            handles=[
+                stream_legend,
+                dam_legend
+            ],
+            loc='best'
+        )
 
         # figure title
         figure.suptitle(
@@ -121,6 +204,10 @@ class Visual:
         fig_width: float = 12,
         fig_height: float = 6,
         fig_title: str = 'Dam system statistics',
+        plot_storage: bool = True,
+        plot_trap: bool = True,
+        plot_release: bool = True,
+        plot_drainage: bool = True,
         xtick_gap: int = 10,
         legend_loc: str = 'best',
         legend_fontsize: int = 12,
@@ -131,15 +218,16 @@ class Visual:
     ) -> matplotlib.figure.Figure:
 
         '''
-        Generates a figure of dam system statistics, including plots of:
+        Generate a figure summarizing dam system statistics with annual percent changes for key metrics:
 
-        - Yearly percentage of total remaining storage across all dams relative
-          to the initial total storage, at the beginning of the simulation year.
-        - Yearly percentage of total sediment trapped by all dams relative
-          to the total sediment input across all stream segments during the simulation year.
-        - Yearly percentage of sediment released by terminal dams and drainage areas
-          not covered by the dam system, relative to the total sediment input across
+        - **Total remaining storage** across all dams, relative to the initial total storage
+          at the start of each simulation year.
+        - **Total sediment trapped** by all dams, relative to the total sediment input across
           all stream segments during the simulation year.
+        - **Sediment released** by terminal dams and by drainage areas not covered by the dam system,
+          relative to the total sediment input across all stream segments during the simulation year.
+        - **Total controlled drainage area** across all dams, relative to the total stream drainage area
+          at the start of each simulation year.
 
         Parameters
         ----------
@@ -162,6 +250,19 @@ class Visual:
         fig_title : str, optional
             Title of the figure. Default is 'Dam system statistics'.
 
+        plot_storage : bool, optional
+            If True (default), include the annual percent change in total remaining storage across all dams.
+
+        plot_trap : bool, optional
+            If True (default), include the annual percent change in total sediment trapped by all dams.
+
+        plot_release : bool, optional
+            If True (default), include the annual percent change in sediment released by terminal dams and
+            by drainage areas not covered by the dam system.
+
+        plot_drainage : bool, optional
+            If True (default), include the annual percent change in total controlled drainage area across all dams.
+
         xtick_gap : int, optional
             Gap between two x-axis ticks. Default is 10.
 
@@ -181,12 +282,17 @@ class Visual:
             Font size of the figure title. Default is 15.
 
         gui_window : bool, optional
-            If True, open a graphical user interface window of the plot. Default is True.
+            If True (default), open a graphical user interface window of the plot.
 
         Returns
         -------
         Figure
             A Figure object containing the dam system statistics plots.
+
+            .. note::
+
+                Users can choose to plot all four metrics or only a subset of them by setting the
+                corresponding boolean parameters to ``False``.
         '''
 
         # figure plot
@@ -202,6 +308,11 @@ class Visual:
                 f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
             )
 
+        # Check that at least one plot option is enabled
+        check_plot = [plot_storage, plot_trap, plot_release, plot_drainage]
+        if check_plot == [False] * len(check_plot):
+            raise ValueError('At least one plot type must be set to True.')
+
         # system statistics DataFrame
         df = pandas.read_json(
             path_or_buf=json_file,
@@ -209,28 +320,45 @@ class Visual:
             lines=True
         )
 
-        # plot data
-        subplot.plot(
-            df['start_year'], df['storage_%'],
-            linestyle='-',
-            linewidth=3,
-            color='cyan',
-            label='Remaining storage'
-        )
-        subplot.plot(
-            df['start_year'], df['sedtrap_%'],
-            linestyle='-',
-            linewidth=3,
-            color='forestgreen',
-            label='Sediment trapped'
-        )
-        subplot.plot(
-            df['start_year'], df['sedrelease_%'],
-            linestyle='-',
-            linewidth=3,
-            color='red',
-            label='Sediment released'
-        )
+        # plot remaining storage percentage
+        if plot_storage:
+            subplot.plot(
+                df['start_year'], df['storage_%'],
+                linestyle='-',
+                linewidth=3,
+                color='cyan',
+                label='Remaining storage'
+            )
+
+        # plot trapped sediment percentage
+        if plot_trap:
+            subplot.plot(
+                df['start_year'], df['sedtrap_%'],
+                linestyle='-',
+                linewidth=3,
+                color='forestgreen',
+                label='Sediment trapped'
+            )
+
+        # plot released sediment percentage
+        if plot_release:
+            subplot.plot(
+                df['start_year'], df['sedrelease_%'],
+                linestyle='-',
+                linewidth=3,
+                color='red',
+                label='Sediment released'
+            )
+
+        # plot controlled drainage area percentage
+        if plot_drainage:
+            subplot.plot(
+                df['start_year'], df['drainage_%'],
+                linestyle='-',
+                linewidth=3,
+                color='goldenrod',
+                label='Controlled drainage'
+            )
 
         # legend
         subplot.legend(
@@ -275,7 +403,7 @@ class Visual:
         )
 
         # y-axis customization
-        subplot.set_ylim(0, 100)
+        subplot.set_ylim(-5, 105)
         yticks = range(0, 100 + 1, 10)
         subplot.set_yticks(
             ticks=yticks

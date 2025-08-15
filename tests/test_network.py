@@ -127,6 +127,15 @@ def test_netwrok(
         assert output.shape == (10, 3)
         scenario_files = [i for i in os.listdir(tmp_dir) if i.startswith('year_') and i.endswith('.geojson')]
         assert len(scenario_files) == 10
+        # plot of dam location in stream
+        output = visual.dam_location_in_stream(
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
+            dam_file=os.path.join(tmp_dir, 'year_0_dam_location_point.geojson'),
+            figure_file=os.path.join(tmp_dir, 'dam_location_in_stream.png'),
+            gui_window=False
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'dam_location_in_stream.png'))
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 1
         # plot of dam system statistics
         output = visual.system_statistics(
             json_file=os.path.join(tmp_dir, 'system_statistics.json'),
@@ -134,4 +143,4 @@ def test_netwrok(
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'system_statistics.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 1
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2

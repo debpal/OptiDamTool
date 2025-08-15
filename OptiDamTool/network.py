@@ -1147,8 +1147,8 @@ class Network:
         (starting from 1), this method generates GeoDataFrames for dam location points and their
         controlled drainage polygons. These are saved as:
 
-        - ``year_{start_year}_dam_location_point.geojson``
-        - ``year_{start_year}_dam_drainage_polygon.geojson``
+        - ``year_<start_year>_dam_location_point.geojson``
+        - ``year_<start_year>_dam_drainage_polygon.geojson``
 
         Files are created for each year where a dam becomes inactive, along with two additional
         GeoJSON files for ``start_year = 0``, representing the initial condition.
