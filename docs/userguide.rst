@@ -335,10 +335,25 @@ To generate GeoJSON files of updated dam location points and their controlled dr
 
 
    
-Visualization of Dam System Performance
--------------------------------------------
+Visualization of Dam System and its Performance
+------------------------------------------------------
 
-To generate a figure of dam system statistics, including plots of remaining storage, sediment trapped, and sediment released, use the following code:
+
+This section presents visualizations of the simulated results generated in the :ref:`ref_dam_system_storgae_dynamics` section.
+
+
+To generate a figure showing the initial dam locations along the stream path, use the following code:
+
+.. code-block:: python
+
+    visual.dam_location_in_stream(
+        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
+        dam_file=r"C:\Users\username\output_folder\year_0_dam_location_point.geojson",
+        figure_file=r"C:\users\username\output_folder\dam_location_in_stream.png"
+    )
+
+
+To generate a dam system statistics figure with plots for controlled drainage area, remaining storage, sediment trapped, and sediment released, use the following code:
 
 .. code-block:: python
 
@@ -348,8 +363,14 @@ To generate a figure of dam system statistics, including plots of remaining stor
         xtick_gap=1
     )
 
-The following figure illustrates the dam system statistics used in the :ref:`ref_dam_system_storgae_dynamics` section.
+The following figures are the outputs produced by the above code.
+
+
+.. image:: _static/dam_location_in_stream.png
+    :scale: 75%
+    :align: center
 
 .. image:: _static/system_statistics.png
-   :align: center
-   
+    :scale: 75%
+    :align: center
+

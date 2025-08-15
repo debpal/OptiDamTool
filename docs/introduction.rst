@@ -59,5 +59,6 @@ Provides methods for analyzing simulation outputs and generating insights.
 
 Provides methods for visualizing simulation outputs.
 
-* Generates figures showing dam system-level statistics, including plots of remaining storage, sediment trapped, and sediment released.
+* Creates a figure showing dam locations along the stream path.
+* Generates a figure showing dam system-level statistics, including controlled drainage area, remaining storage, sediment trapped, and sediment released.
 
