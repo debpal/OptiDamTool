@@ -136,6 +136,22 @@ def test_netwrok(
         )
         assert os.path.exists(os.path.join(tmp_dir, 'dam_location_in_stream.png'))
         assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 1
+        # plot of dam remaining storage
+        output = visual.dam_remaining_storage(
+            json_file=os.path.join(tmp_dir, 'dam_remaining_storage.json'),
+            figure_file=os.path.join(tmp_dir, 'dam_remaining_storage.png'),
+            gui_window=False
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'dam_remaining_storage.png'))
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2
+        # plot of dam sediment trapping
+        output = visual.dam_trapped_sediment(
+            json_file=os.path.join(tmp_dir, 'dam_trapped_sediment.json'),
+            figure_file=os.path.join(tmp_dir, 'dam_trapped_sediment.png'),
+            gui_window=False
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'dam_trapped_sediment.png'))
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 3
         # plot of dam system statistics
         output = visual.system_statistics(
             json_file=os.path.join(tmp_dir, 'system_statistics.json'),
@@ -143,4 +159,4 @@ def test_netwrok(
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'system_statistics.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 4

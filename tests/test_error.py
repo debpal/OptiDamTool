@@ -34,7 +34,8 @@ def message():
         'error_folder': 'Input folder path is not valid.',
         'error_folder_type': 'A valid string of folder_path must be provided when write_output is True.',
         'error_json': 'Output file path must have a valid JSON file extension.',
-        'error_geojson': 'Output file path must have a valid GeoJSON file extension.'
+        'error_geojson': 'Output file path must have a valid GeoJSON file extension.',
+        'error_png': 'Input figure_file extension ".pn" is not supported for saving the figure.'
     }
 
     return output
@@ -183,7 +184,8 @@ def test_error_analysis(
 
 
 def test_error_visual(
-    visual
+    visual,
+    message
 ):
 
     # error for invaid figure file extension for dam location in stream
@@ -193,14 +195,28 @@ def test_error_visual(
             dam_file='dam.geojson',
             figure_file='dam_location_in_stream.pn'
         )
-    assert exc_info.value.args[0] == 'Input figure_file extension ".pn" is not supported for saving the figure.'
+    assert exc_info.value.args[0] == message['error_png']
+    # error for invaid figure file extension for dam remaining storage
+    with pytest.raises(Exception) as exc_info:
+        visual.dam_remaining_storage(
+            json_file='dam_remaining_storage.json',
+            figure_file='dam_remaining_storage.pn'
+        )
+    assert exc_info.value.args[0] == message['error_png']
+    # error for invaid figure file extension for dam trapped sediment
+    with pytest.raises(Exception) as exc_info:
+        visual.dam_trapped_sediment(
+            json_file='dam_trapped_sediment.json',
+            figure_file='dam_trapped_sediment.pn'
+        )
+    assert exc_info.value.args[0] == message['error_png']
     # error for invaid figure file extension for system statistics
     with pytest.raises(Exception) as exc_info:
         visual.system_statistics(
             json_file='system_statistics.json',
             figure_file='system_statistics.pn'
         )
-    assert exc_info.value.args[0] == 'Input figure_file extension ".pn" is not supported for saving the figure.'
+    assert exc_info.value.args[0] == message['error_png']
 
     # error if all plot options are set to False for system statistics
     with pytest.raises(Exception) as exc_info:
