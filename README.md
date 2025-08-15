@@ -70,8 +70,11 @@ Provides methods for visualizing simulation outputs.
 
 The examples below show typical outputs produced by these visualization methods:
 
-![Dam locations with identifiers along stream path](https://github.com/debpal/OptiDamTool/raw/main/docs/_static/dam_location_in_stream.png)
-![Dam system statistics](https://github.com/debpal/OptiDamTool/raw/main/docs/_static/system_statistics.png)
+
+<div align="center">
+  <img src="https://github.com/debpal/OptiDamTool/raw/main/docs/_static/dam_location_in_stream.png" width="40%">
+  <img src="https://github.com/debpal/OptiDamTool/raw/main/docs/_static/system_statistics.png" width="75%">
+</div>
 
 
 
