@@ -2,6 +2,19 @@
 Release Notes
 ===============
 
+Version 0.4.4
+---------------
+
+* **Release date:** 16-Aug-2025.
+
+* **Features:**
+
+    * Added a new class :class:`OptiDamTool.Visual` that provides utilities for visualizing data.
+    * Introduced methods for plotting dam locations along streams and overall dam-system statistics.
+    * Added methods for plotting annual remaining storage of individual dams and their sediment trapping percentages relative to total sediment inputs.
+
+* **Documentation:** Updated to include details of the new visualization features.
+
 
 Version 0.3.4
 ---------------
