@@ -23,8 +23,8 @@ class Visual:
         stream_linewidth: float = 1,
         sed_colormap: str = 'tab20',
         cumsed_colormap: str = 'winter',
-        sed_tickgap: float = 1,
-        cumsed_tickgap: float = 10,
+        sed_tickgap: int = 1,
+        cumsed_tickgap: int = 10,
         tick_fontsize: int = 12,
         title_fontsize: int = 12,
         gui_window: bool = True
@@ -160,7 +160,7 @@ class Visual:
 
         # fix tick locations and labels in sediment inflow colorbar
         sed_cb = figure.get_axes()[2]
-        sed_yticks = range(0, sed_max + 1, sed_tickgap)
+        sed_yticks = list(range(0, sed_max + 1, sed_tickgap))
         sed_cb.set_yticks(
             ticks=sed_yticks
         )
@@ -171,7 +171,7 @@ class Visual:
 
         # fix tick locations and labels in cumulative sediment inflow colorbar
         cumsed_cb = figure.get_axes()[3]
-        cumsed_yticks = range(cumsed_min, 100 + 1, cumsed_tickgap)
+        cumsed_yticks = list(range(cumsed_min, 100 + 1, cumsed_tickgap))
         cumsed_cb.set_yticks(
             ticks=cumsed_yticks
         )
