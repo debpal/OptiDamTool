@@ -59,6 +59,7 @@ Provides methods for analyzing simulation outputs and generating insights.
 
 Provides methods for visualizing simulation outputs.
 
+* Produces a figure showing sediment inflow percentages to stream segments, relative to the total sediment input across all stream segments.
 * Creates a figure showing dam locations along the stream path.
 * Generates a figure showing the annual remaining storage of each dam in the system at the beginning of the year.
 * Generates a figure showing the annual sediment trapping percentage by each dam in the system, relative to the total sediment input across all stream segments during the year.

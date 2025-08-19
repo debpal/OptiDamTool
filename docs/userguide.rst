@@ -265,6 +265,25 @@ These metrics provide a comprehensive understanding of how the upstream network 
         stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
         dam_list=[21, 22, 5, 31, 17, 24, 27, 2, 13, 1]
     )
+    
+    
+To create a figure showing sediment inflow percentages to stream segments, relative to the total sediment input across all stream segments, use the following code:
+
+.. code-block:: python
+
+    visual.sediment_inflow_to_stream(
+        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
+        figure_file=r"C:\users\username\output_folder\sediment_inflow_to_stream.png"
+    )
+
+
+The following figure shows the output produced by the above code:
+
+.. image:: _static/sediment_inflow_to_stream.png
+    :scale: 60%
+    :align: center
+
+    
 
 .. _ref_dam_system_storgae_dynamics:
 
