@@ -127,6 +127,14 @@ def test_netwrok(
         assert output.shape == (10, 3)
         scenario_files = [i for i in os.listdir(tmp_dir) if i.startswith('year_') and i.endswith('.geojson')]
         assert len(scenario_files) == 10
+        # plot of sediment inflow to stream
+        output = visual.sediment_inflow_to_stream(
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
+            figure_file=os.path.join(tmp_dir, 'sediment_inflow_to_stream.png'),
+            gui_window=False
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'sediment_inflow_to_stream.png'))
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 1
         # plot of dam location in stream
         output = visual.dam_location_in_stream(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
@@ -135,7 +143,7 @@ def test_netwrok(
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'dam_location_in_stream.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 1
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2
         # plot of dam remaining storage
         output = visual.dam_remaining_storage(
             json_file=os.path.join(tmp_dir, 'dam_remaining_storage.json'),
@@ -143,7 +151,7 @@ def test_netwrok(
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'dam_remaining_storage.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 3
         # plot of dam sediment trapping
         output = visual.dam_trapped_sediment(
             json_file=os.path.join(tmp_dir, 'dam_trapped_sediment.json'),
@@ -151,7 +159,7 @@ def test_netwrok(
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'dam_trapped_sediment.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 3
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 4
         # plot of dam system statistics
         output = visual.system_statistics(
             json_file=os.path.join(tmp_dir, 'system_statistics.json'),
@@ -159,4 +167,4 @@ def test_netwrok(
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'system_statistics.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 4
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 5

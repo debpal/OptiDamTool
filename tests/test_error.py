@@ -188,6 +188,13 @@ def test_error_visual(
     message
 ):
 
+    # error for invaid figure file extension for sediment inflow to stream
+    with pytest.raises(Exception) as exc_info:
+        visual.sediment_inflow_to_stream(
+            stream_file='stream.geojson',
+            figure_file='sediment_inflow_to_stream.pn'
+        )
+    assert exc_info.value.args[0] == message['error_png']
     # error for invaid figure file extension for dam location in stream
     with pytest.raises(Exception) as exc_info:
         visual.dam_location_in_stream(

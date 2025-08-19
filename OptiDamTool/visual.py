@@ -12,6 +12,150 @@ class Visual:
     Provides utilities for visualizing data.
     '''
 
+    def sediment_inflow_to_stream(
+        self,
+        stream_file: str,
+        figure_file: str,
+        fig_width: float = 10,
+        fig_height: float = 5,
+        sed_title: str = 'Sediment inflow (%)',
+        cumsed_title: str = 'Cumulative sediment inflow (%)',
+        stream_linewidth: float = 1,
+        sed_colormap: str = 'cool',
+        cumsed_colormap: str = 'winter',
+        title_fontsize: int = 12,
+        gui_window: bool = True
+    ) -> matplotlib.figure.Figure:
+
+        '''
+        Generates a figure with two horizontally arranged plots:
+
+        - Sediment inflow percentage to individual stream segments.
+        - Cumulative sediment inflow percentage to each stream segment, including all upstream connected segments.
+
+        Both plots are normalized by the total sediment input across all stream segments.
+
+        Parameters
+        ----------
+        stream_file : str
+            Path to the input stream vector file, created by :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_geojson`
+
+        figure_file : str
+            Path to the output figure file.
+
+        fig_width : float, optional
+            Width of the figure in inches. Default is 10.
+
+        fig_height : float, optional
+            Height of the figure in inches. Default is 5.
+
+        sed_title : str, optional
+            Title of the suplot for sediment inflow percentage.
+            Default is 'Sediment inflow (%)'.
+
+        cumsed_title : str, optional
+            Title of the suplot for cumulative sediment inflow percentage.
+            Default is 'Cumulative sediment inflow (%)'.
+
+        stream_linewidth : float, optional
+            Line width for plotting the stream. Default is 1.
+
+        sed_colormap : str, optional
+            Name of the `colormap <https://matplotlib.org/stable/users/explain/colors/colormaps.html>`_
+            used to generate colors for sediment percentage. Default is 'cool'.
+
+        sumsed_colormap : str, optional
+            Name of the colormap used to generate colors for cumulative sediment percentage.
+            Default is 'winter'.
+
+        title_fontsize : int, optional
+            Font size of the subplot titles. Default is 12.
+
+        gui_window : bool, optional
+            If True (default), open a graphical user interface window for the plot.
+
+        Returns
+        -------
+        Figure
+            A Figure object containing plots of sediment inflow to the stream path.
+        '''
+
+        # figure plot
+        figure = matplotlib.pyplot.figure(
+            figsize=(fig_width, fig_height)
+        )
+        subplot = figure.subplots(1, 2)
+
+        # check figure file extension
+        fig_ext = os.path.splitext(figure_file)[-1][1:]
+        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
+            raise ValueError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
+            )
+
+        # stream GeoDataFrame
+        stream_gdf = geopandas.read_file(
+            filename=stream_file
+        )
+        total_sediment = stream_gdf['cumsed_kg'].max()
+        stream_gdf['sed_%'] = 100 * stream_gdf['sed_kg'] / total_sediment
+        stream_gdf['cumsed_%'] = 100 * stream_gdf['cumsed_kg'] / total_sediment
+
+        # plot sediment percentage
+        stream_gdf.plot(
+            column='sed_%',
+            ax=subplot[0],
+            cmap=sed_colormap,
+            vmin=int(stream_gdf['sed_%'].min()),
+            vmax=int(stream_gdf['sed_%'].max()) + 1,
+            legend=True,
+            legend_kwds={"shrink": 0.75},
+            linewidth=stream_linewidth
+        )
+        subplot[0].set_title(
+            label=sed_title,
+            fontsize=title_fontsize
+        )
+
+        # plot cumulative sediment percentage
+        stream_gdf.plot(
+            column='cumsed_%',
+            ax=subplot[1],
+            cmap=cumsed_colormap,
+            vmin=int(stream_gdf['cumsed_%'].min()),
+            legend=True,
+            legend_kwds={"shrink": 0.75},
+            linewidth=stream_linewidth
+        )
+        subplot[1].set_title(
+            label=cumsed_title,
+            fontsize=title_fontsize
+        )
+
+        # remove ticks and labels from both axes
+        for i in [0, 1]:
+            subplot[i].tick_params(
+                axis='both',
+                which='both',
+                left=False,
+                bottom=False,
+                labelleft=False,
+                labelbottom=False
+            )
+
+        # saving figure
+        figure.tight_layout()
+        figure.savefig(
+            fname=figure_file,
+            bbox_inches='tight'
+        )
+
+        # figure display
+        matplotlib.pyplot.show() if gui_window else None
+        matplotlib.pyplot.close(figure)
+
+        return figure
+
     def dam_location_in_stream(
         self,
         stream_file: str,
@@ -19,7 +163,7 @@ class Visual:
         figure_file: str,
         fig_width: float = 6,
         fig_height: float = 6,
-        fig_title: str = 'Dam locations with identifiers',
+        fig_title: str = 'Dam locations with stream identifiers',
         stream_linewidth: float = 1,
         dam_marker: str = 'o',
         dam_markersize: int = 50,
