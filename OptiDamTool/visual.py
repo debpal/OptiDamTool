@@ -21,8 +21,11 @@ class Visual:
         sed_title: str = 'Sediment inflow (%)',
         cumsed_title: str = 'Cumulative sediment inflow (%)',
         stream_linewidth: float = 1,
-        sed_colormap: str = 'cool',
+        sed_colormap: str = 'tab20',
         cumsed_colormap: str = 'winter',
+        sed_tickgap: float = 1,
+        cumsed_tickgap: float = 10,
+        tick_fontsize: int = 12,
         title_fontsize: int = 12,
         gui_window: bool = True
     ) -> matplotlib.figure.Figure:
@@ -62,11 +65,20 @@ class Visual:
 
         sed_colormap : str, optional
             Name of the `colormap <https://matplotlib.org/stable/users/explain/colors/colormaps.html>`_
-            used to generate colors for sediment percentage. Default is 'cool'.
+            used to generate colors for sediment percentage. Default is 'tab20'.
 
         sumsed_colormap : str, optional
             Name of the colormap used to generate colors for cumulative sediment percentage.
             Default is 'winter'.
+
+        sed_tickgap : int, optional
+            Gap between two y-axis ticks on the sediment inflow percentage colorbar. Default is 1.
+
+        cumsed_tickgap : int, optional
+            Gap between two y-axis ticks on cumulative sediment inflow percentage colorbar. Default is 10.
+
+        tick_fontsize : int, optional
+            Font size of the y-axis tick labels on both colorbars. Default is 12.
 
         title_fontsize : int, optional
             Font size of the subplot titles. Default is 12.
@@ -102,12 +114,14 @@ class Visual:
         stream_gdf['cumsed_%'] = 100 * stream_gdf['cumsed_kg'] / total_sediment
 
         # plot sediment percentage
+        sed_min = int(stream_gdf['sed_%'].min())
+        sed_max = int(stream_gdf['sed_%'].max()) + 1
         stream_gdf.plot(
             column='sed_%',
             ax=subplot[0],
             cmap=sed_colormap,
-            vmin=int(stream_gdf['sed_%'].min()),
-            vmax=int(stream_gdf['sed_%'].max()) + 1,
+            vmin=sed_min,
+            vmax=sed_max,
             legend=True,
             legend_kwds={"shrink": 0.75},
             linewidth=stream_linewidth
@@ -118,11 +132,12 @@ class Visual:
         )
 
         # plot cumulative sediment percentage
+        cumsed_min = int(stream_gdf['cumsed_%'].min())
         stream_gdf.plot(
             column='cumsed_%',
             ax=subplot[1],
             cmap=cumsed_colormap,
-            vmin=int(stream_gdf['cumsed_%'].min()),
+            vmin=cumsed_min,
             legend=True,
             legend_kwds={"shrink": 0.75},
             linewidth=stream_linewidth
@@ -142,6 +157,28 @@ class Visual:
                 labelleft=False,
                 labelbottom=False
             )
+
+        # fix tick locations and labels in sediment inflow colorbar
+        sed_cb = figure.get_axes()[2]
+        sed_yticks = range(0, sed_max + 1, sed_tickgap)
+        sed_cb.set_yticks(
+            ticks=sed_yticks
+        )
+        sed_cb.set_yticklabels(
+            labels=[str(yt) for yt in sed_yticks],
+            fontsize=tick_fontsize
+        )
+
+        # fix tick locations and labels in cumulative sediment inflow colorbar
+        cumsed_cb = figure.get_axes()[3]
+        cumsed_yticks = range(cumsed_min, 100 + 1, cumsed_tickgap)
+        cumsed_cb.set_yticks(
+            ticks=cumsed_yticks
+        )
+        cumsed_cb.set_yticklabels(
+            labels=[str(yt) for yt in cumsed_yticks],
+            fontsize=tick_fontsize
+        )
 
         # saving figure
         figure.tight_layout()
