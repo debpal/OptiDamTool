@@ -24,7 +24,7 @@ class Visual:
         sed_colormap: str = 'tab20',
         cumsed_colormap: str = 'winter',
         sed_tickgap: int = 1,
-        cumsed_tickgap: int = 10,
+        cumsed_tickgap: int = 20,
         tick_fontsize: int = 12,
         title_fontsize: int = 12,
         gui_window: bool = True
@@ -75,7 +75,7 @@ class Visual:
             Gap between two y-axis ticks on the sediment inflow percentage colorbar. Default is 1.
 
         cumsed_tickgap : int, optional
-            Gap between two y-axis ticks on cumulative sediment inflow percentage colorbar. Default is 10.
+            Gap between two y-axis ticks on cumulative sediment inflow percentage colorbar. Default is 20.
 
         tick_fontsize : int, optional
             Font size of the y-axis tick labels on both colorbars. Default is 12.
@@ -101,8 +101,8 @@ class Visual:
         # check figure file extension
         fig_ext = os.path.splitext(figure_file)[-1][1:]
         if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise ValueError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
+            raise TypeError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
             )
 
         # stream GeoDataFrame
@@ -275,8 +275,8 @@ class Visual:
         # check figure file extension
         fig_ext = os.path.splitext(figure_file)[-1][1:]
         if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise ValueError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
+            raise TypeError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
             )
 
         # stream GeoDataFrame
@@ -499,14 +499,14 @@ class Visual:
         # check figure file extension
         fig_ext = os.path.splitext(figure_file)[-1][1:]
         if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise ValueError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
+            raise TypeError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
             )
 
         # Check that at least one plot option is enabled
         check_plot = [plot_storage, plot_trap, plot_release, plot_drainage]
         if check_plot == [False] * len(check_plot):
-            raise ValueError('At least one plot type must be set to True.')
+            raise ValueError('At least one plot type must be set to True')
 
         # system statistics DataFrame
         df = pandas.read_json(
@@ -564,7 +564,10 @@ class Visual:
         # x-axis customization
         year_max = df['start_year'].max()
         xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap
-        subplot.set_xlim(0, xaxis_max)
+        subplot.set_xlim(
+            left=0,
+            right=xaxis_max
+        )
         xticks = range(0, xaxis_max + 1, xtick_gap)
         subplot.set_xticks(
             ticks=xticks
@@ -598,7 +601,10 @@ class Visual:
         )
 
         # y-axis customization
-        subplot.set_ylim(0 + ybottom_offset, 100 + ytop_offset)
+        subplot.set_ylim(
+            bottom=0 + ybottom_offset,
+            top=100 + ytop_offset
+        )
         yticks = range(0, 100 + 1, 10)
         subplot.set_yticks(
             ticks=yticks
@@ -658,8 +664,7 @@ class Visual:
         colormap_name: str = 'coolwarm',
         dam_linewidth: float = 2,
         xtick_gap: int = 10,
-        legend_loc: str = 'upper right',
-        legend_rows: int = 2,
+        legend_cols: int = 2,
         legend_fontsize: int = 12,
         tick_fontsize: int = 12,
         axis_fontsize: int = 15,
@@ -701,11 +706,8 @@ class Visual:
         xtick_gap : int, optional
             Gap between two x-axis ticks. Default is 10.
 
-        legend_loc : str, optional
-            Location of the legend in the figure. Default is 'upper right'.
-
-        legend_rows : int, optional
-            Number of horizontal rows to arrange legend items. Default is 2.
+        legend_cols : int, optional
+            Number of columns to arrange legend items. Default is 2.
 
         legend_fontsize : int, optional
             Font size of the legend. Default is 12.
@@ -728,20 +730,29 @@ class Visual:
             A Figure object containing the annual storage variation of each individual dam in the system.
         '''
 
-        # figure plot
+        # setting figure
         figure = matplotlib.pyplot.figure(
             figsize=(fig_width, fig_height)
         )
-        subplot = figure.subplots(1, 1)
+        figure_grid = figure.add_gridspec(
+            nrows=1,
+            ncols=5
+        )
+
+        # setting subplot for dam trapping efficiency
+        plot_data = figure.add_subplot(figure_grid[0, :4])
+
+        # setting subplot for legend
+        plot_legend = figure.add_subplot(figure_grid[0, 4])
 
         # check figure file extension
         fig_ext = os.path.splitext(figure_file)[-1][1:]
         if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise ValueError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
+            raise TypeError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
             )
 
-        # dam remaining storage DataFrame
+        # DataFrame of dam remaining storage
         df = pandas.read_json(
             path_or_buf=json_file,
             orient='records',
@@ -762,36 +773,44 @@ class Visual:
             dam_cols[i]: colormap(i / len(dam_cols)) for i in range(len(dam_cols))
         }
 
-        # plot remaining storage percentage
+        # plot remaining storage percentage of dams
+        legend_handles = []
         for dam in dam_cols:
-            subplot.plot(
+            dam_line2d = plot_data.plot(
                 df['start_year'], df[dam],
                 linestyle='-',
                 linewidth=dam_linewidth,
-                color=color_dict[dam],
-                label=dam
+                color=color_dict[dam]
             )
+            legend_handles.append(dam_line2d[0])
 
-        # legend
-        subplot.legend(
-            loc=legend_loc,
+        # plot legend
+        plot_legend.legend(
+            handles=legend_handles,
+            labels=dam_cols,
+            loc='center right',
             fontsize=legend_fontsize,
-            ncol=int(len(dam_cols) / legend_rows) + 1
+            ncols=2,
+            frameon=False
         )
+        plot_legend.axis('off')
 
         # x-axis customization
         year_max = df['start_year'].max()
         xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap
-        subplot.set_xlim(0, xaxis_max)
+        plot_data.set_xlim(
+            left=0,
+            right=xaxis_max
+        )
         xticks = range(0, xaxis_max + 1, xtick_gap)
-        subplot.set_xticks(
+        plot_data.set_xticks(
             ticks=xticks
         )
-        subplot.set_xticklabels(
+        plot_data.set_xticklabels(
             labels=[str(xt) for xt in xticks],
             fontsize=12
         )
-        subplot.tick_params(
+        plot_data.tick_params(
             axis='x',
             which='both',
             direction='in',
@@ -802,7 +821,7 @@ class Visual:
             labeltop=False,
             labelbottom=True
         )
-        subplot.grid(
+        plot_data.grid(
             visible=True,
             which='major',
             axis='x',
@@ -810,22 +829,25 @@ class Visual:
             linestyle='--',
             linewidth=0.3
         )
-        subplot.set_xlabel(
+        plot_data.set_xlabel(
             xlabel='Year',
             fontsize=axis_fontsize
         )
 
         # y-axis customization
-        subplot.set_ylim(0, 100)
+        plot_data.set_ylim(
+            bottom=0,
+            top=100
+        )
         yticks = range(0, 100 + 1, 10)
-        subplot.set_yticks(
+        plot_data.set_yticks(
             ticks=yticks
         )
-        subplot.set_yticklabels(
+        plot_data.set_yticklabels(
             labels=[str(yt) for yt in yticks],
             fontsize=tick_fontsize
         )
-        subplot.tick_params(
+        plot_data.tick_params(
             axis='y',
             which='both',
             direction='in',
@@ -836,13 +858,15 @@ class Visual:
             labelleft=True,
             labelright=False
         )
-        subplot.grid(
+        plot_data.grid(
             visible=True,
-            which='major', axis='y',
+            which='major',
+            axis='y',
             color='gray',
-            linestyle='--', linewidth=0.3
+            linestyle='--',
+            linewidth=0.3
         )
-        subplot.set_ylabel(
+        plot_data.set_ylabel(
             ylabel='Percentage (%)',
             fontsize=axis_fontsize
         )
@@ -878,8 +902,7 @@ class Visual:
         xtick_gap: int = 10,
         ytick_gap: int = 10,
         ybottom_offset: float = 0,
-        legend_loc: str = 'upper right',
-        legend_rows: int = 2,
+        legend_cols: int = 2,
         legend_fontsize: int = 12,
         tick_fontsize: int = 12,
         axis_fontsize: int = 15,
@@ -929,11 +952,8 @@ class Visual:
             Negative offset to decrease the lower y-axis limit below 0, improving visibility
             when plot values are close to 0. Default is 0.
 
-        legend_loc : str, optional
-            Location of the legend in the figure. Default is 'upper right'.
-
-        legend_rows : int, optional
-            Number of horizontal rows to arrange legend items. Default is 2.
+        legend_cols : int, optional
+            Number of columns to arrange legend items. Default is 2.
 
         legend_fontsize : int, optional
             Font size of the legend. Default is 12.
@@ -956,20 +976,29 @@ class Visual:
             A Figure object containing the annual sediment trapping percentage by each dam in the system.
         '''
 
-        # figure plot
+        # setting figure
         figure = matplotlib.pyplot.figure(
             figsize=(fig_width, fig_height)
         )
-        subplot = figure.subplots(1, 1)
+        figure_grid = figure.add_gridspec(
+            nrows=1,
+            ncols=5
+        )
+
+        # setting subplot for dam trapping efficiency
+        plot_data = figure.add_subplot(figure_grid[0, :4])
+
+        # setting subplot for legend
+        plot_legend = figure.add_subplot(figure_grid[0, 4])
 
         # check figure file extension
         fig_ext = os.path.splitext(figure_file)[-1][1:]
         if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise ValueError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure.'
+            raise TypeError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
             )
 
-        # dam remaining storage DataFrame
+        # DataFrame of sediment trapped by dams
         df = pandas.read_json(
             path_or_buf=json_file,
             orient='records',
@@ -990,36 +1019,44 @@ class Visual:
             dam_cols[i]: colormap(i / len(dam_cols)) for i in range(len(dam_cols))
         }
 
-        # plot remaining storage percentage
+        # plot sediment trapped by dams
+        legend_handles = []
         for dam in dam_cols:
-            subplot.plot(
+            dam_line2d = plot_data.plot(
                 df['start_year'], df[dam],
                 linestyle='-',
                 linewidth=dam_linewidth,
-                color=color_dict[dam],
-                label=dam
+                color=color_dict[dam]
             )
+            legend_handles.append(dam_line2d[0])
 
-        # legend
-        subplot.legend(
-            loc=legend_loc,
+        # plot legend
+        plot_legend.legend(
+            handles=legend_handles,
+            labels=dam_cols,
+            loc='center right',
             fontsize=legend_fontsize,
-            ncol=int(len(dam_cols) / legend_rows) + 1
+            ncols=2,
+            frameon=False
         )
+        plot_legend.axis('off')
 
         # x-axis customization
         year_max = df['start_year'].max()
         xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap
-        subplot.set_xlim(0, xaxis_max)
+        plot_data.set_xlim(
+            left=0,
+            right=xaxis_max
+        )
         xticks = range(0, xaxis_max + 1, xtick_gap)
-        subplot.set_xticks(
+        plot_data.set_xticks(
             ticks=xticks
         )
-        subplot.set_xticklabels(
+        plot_data.set_xticklabels(
             labels=[str(xt) for xt in xticks],
             fontsize=12
         )
-        subplot.tick_params(
+        plot_data.tick_params(
             axis='x',
             which='both',
             direction='in',
@@ -1030,7 +1067,7 @@ class Visual:
             labeltop=False,
             labelbottom=True
         )
-        subplot.grid(
+        plot_data.grid(
             visible=True,
             which='major',
             axis='x',
@@ -1038,7 +1075,7 @@ class Visual:
             linestyle='--',
             linewidth=0.3
         )
-        subplot.set_xlabel(
+        plot_data.set_xlabel(
             xlabel='Year',
             fontsize=axis_fontsize
         )
@@ -1046,16 +1083,19 @@ class Visual:
         # y-axis customization
         trap_max = df[dam_cols].max().max()
         yaxis_max = (int(trap_max / ytick_gap) + 2) * ytick_gap
-        subplot.set_ylim(0 + ybottom_offset, yaxis_max)
+        plot_data.set_ylim(
+            bottom=0 + ybottom_offset,
+            top=yaxis_max
+        )
         yticks = range(0, yaxis_max + 1, ytick_gap)
-        subplot.set_yticks(
+        plot_data.set_yticks(
             ticks=yticks
         )
-        subplot.set_yticklabels(
+        plot_data.set_yticklabels(
             labels=[str(yt) for yt in yticks],
             fontsize=tick_fontsize
         )
-        subplot.tick_params(
+        plot_data.tick_params(
             axis='y',
             which='both',
             direction='in',
@@ -1066,14 +1106,259 @@ class Visual:
             labelleft=True,
             labelright=False
         )
-        subplot.grid(
+        plot_data.grid(
+            visible=True,
+            which='major',
+            axis='y',
+            color='gray',
+            linestyle='--',
+            linewidth=0.3
+        )
+        plot_data.set_ylabel(
+            ylabel='Percentage (%)',
+            fontsize=axis_fontsize
+        )
+
+        # figure title
+        figure.suptitle(
+            fig_title,
+            fontsize=title_fontsize
+        )
+
+        # saving figure
+        figure.tight_layout()
+        figure.savefig(
+            fname=figure_file,
+            bbox_inches='tight'
+        )
+
+        # figure display
+        matplotlib.pyplot.show() if gui_window else None
+        matplotlib.pyplot.close(figure)
+
+        return figure
+
+    def dam_trap_efficiency(
+        self,
+        json_file: str,
+        figure_file: str,
+        fig_width: float = 10,
+        fig_height: float = 5,
+        fig_title: str = 'Dam annual sediment trapping efficiency',
+        colormap_name: str = 'coolwarm',
+        dam_linewidth: float = 2,
+        xtick_gap: int = 10,
+        legend_cols: int = 2,
+        legend_fontsize: int = 12,
+        tick_fontsize: int = 12,
+        axis_fontsize: int = 15,
+        title_fontsize: int = 15,
+        gui_window: bool = True
+    ) -> matplotlib.figure.Figure:
+
+        '''
+        Generates a figure showing the annual trapping efficiency of each dam in the system
+        at the beginning of the year. The values range from 0 to 1, indicating that the amount of sediment trapped
+        by a dam equals the product of its sediment inflow and trap efficiency during the year.
+
+        Parameters
+        ----------
+        json_file : str
+            Path to the input ``dam_trap_efficiency.json`` file, created by one of the methods:
+
+            - :meth:`OptiDamTool.Network.storage_dynamics_detailed`
+            - :meth:`OptiDamTool.Network.storage_dynamics_lite`
+            - :meth:`OptiDamTool.Network.storage_dynamics_and_drainage_scenarios`
+
+        figure_file : str
+            Path to the output figure file.
+
+        fig_width : float, optional
+            Width of the figure in inches. Default is 10.
+
+        fig_height : float, optional
+            Height of the figure in inches. Default is 5.
+
+        fig_title : str, optional
+            Title of the figure. Default is 'Dam annual sediment trapping efficiency'.
+
+        colormap_name : str, optional
+            Name of the `colormap <https://matplotlib.org/stable/users/explain/colors/colormaps.html>`_
+            used to generate colors for individual dams. Default is 'coolwarm'.
+
+        dam_linewidth : float, optional
+            Line width for plotting the storage variation of individual dams. Default is 2.
+
+        xtick_gap : int, optional
+            Gap between two x-axis ticks. Default is 10.
+
+        legend_cols : int, optional
+            Number of columns to arrange legend items. Default is 2.
+
+        legend_fontsize : int, optional
+            Font size of the legend. Default is 12.
+
+        tick_fontsize : int, optional
+            Font size of the tick labels on both axes. Default is 12.
+
+        axis_fontsize : int, optional
+            Font size of the axis labels. Default is 15.
+
+        title_fontsize : int, optional
+            Font size of the figure title. Default is 15.
+
+        gui_window : bool, optional
+            If True (default), open a graphical user interface window of the plot.
+
+        Returns
+        -------
+        Figure
+            A Figure object containing the annual trapping efficiency of each dam in the system.
+        '''
+
+        # setting figure
+        figure = matplotlib.pyplot.figure(
+            figsize=(fig_width, fig_height)
+        )
+        figure_grid = figure.add_gridspec(
+            nrows=1,
+            ncols=5
+        )
+
+        # setting subplot for dam trapping efficiency
+        plot_data = figure.add_subplot(figure_grid[0, :4])
+
+        # setting subplot for legend
+        plot_legend = figure.add_subplot(figure_grid[0, 4])
+
+        # check figure file extension
+        fig_ext = os.path.splitext(figure_file)[-1][1:]
+        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
+            raise TypeError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
+            )
+
+        # DataFrame of dam trapping efficiency
+        df = pandas.read_json(
+            path_or_buf=json_file,
+            orient='records',
+            lines=True
+        )
+
+        # removing values greater than 1, if any, from the DataFrame
+        df.iloc[:, 1:] = df.iloc[:, 1:].where(
+            cond=df.iloc[:, 1:] <= 1
+        )
+
+        # sort dam columns
+        dam_cols = sorted(
+            [col for col in df.columns if col != 'start_year'],
+            key=int
+        )
+
+        # set colors
+        colormap = matplotlib.colormaps.get_cmap(
+            cmap=colormap_name
+        )
+        color_dict = {
+            dam_cols[i]: colormap(i / len(dam_cols)) for i in range(len(dam_cols))
+        }
+
+        # plot dam trapping efficiency
+        legend_handles = []
+        for dam in dam_cols:
+            dam_line2d = plot_data.plot(
+                df['start_year'], df[dam],
+                linestyle='-',
+                linewidth=dam_linewidth,
+                color=color_dict[dam]
+            )
+            legend_handles.append(dam_line2d[0])
+
+        # plot legend
+        plot_legend.legend(
+            handles=legend_handles,
+            labels=dam_cols,
+            loc='center right',
+            fontsize=legend_fontsize,
+            ncols=legend_cols,
+            frameon=False
+        )
+        plot_legend.axis('off')
+
+        # x-axis customization
+        year_max = df['start_year'].max()
+        xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap
+        plot_data.set_xlim(
+            left=0,
+            right=xaxis_max
+        )
+        xticks = range(0, xaxis_max + 1, xtick_gap)
+        plot_data.set_xticks(
+            ticks=xticks
+        )
+        plot_data.set_xticklabels(
+            labels=[str(xt) for xt in xticks],
+            fontsize=12
+        )
+        plot_data.tick_params(
+            axis='x',
+            which='both',
+            direction='in',
+            length=6,
+            width=1,
+            top=True,
+            bottom=True,
+            labeltop=False,
+            labelbottom=True
+        )
+        plot_data.grid(
+            visible=True,
+            which='major',
+            axis='x',
+            color='gray',
+            linestyle='--',
+            linewidth=0.3
+        )
+        plot_data.set_xlabel(
+            xlabel='Year',
+            fontsize=axis_fontsize
+        )
+
+        # y-axis customization
+        plot_data.set_ylim(
+            bottom=0,
+            top=1
+        )
+        yticks = [
+            i * 0.1 for i in range(0, 10 + 1, 1)
+        ]
+        plot_data.set_yticks(
+            ticks=yticks
+        )
+        plot_data.set_yticklabels(
+            labels=[f'{yt:.1f}' for yt in yticks],
+            fontsize=tick_fontsize
+        )
+        plot_data.tick_params(
+            axis='y',
+            which='both',
+            direction='in',
+            length=6,
+            width=1,
+            left=True,
+            right=True,
+            labelleft=True,
+            labelright=False
+        )
+        plot_data.grid(
             visible=True,
             which='major', axis='y',
             color='gray',
             linestyle='--', linewidth=0.3
         )
-        subplot.set_ylabel(
-            ylabel='Percentage (%)',
+        plot_data.set_ylabel(
+            ylabel='Fraction',
             fontsize=axis_fontsize
         )
 
