@@ -48,7 +48,7 @@ class Network:
 
         # check distinct stream identifiers for dams
         if len(set(dam_list)) < len(dam_list):
-            raise Exception('Duplicate stream identifiers found in the input dam list.')
+            raise ValueError('Duplicate stream identifiers found in the input dam list')
 
         # connectivity from upstream to downstream
         connect_dict = GeoAnalyze.Stream()._connectivity_upstream_to_downstream(
@@ -60,7 +60,7 @@ class Network:
         adc_dict = {}
         for i in dam_list:
             if i not in connect_dict:
-                raise Exception(f'Invalid stream identifier {i} for a dam.')
+                raise ValueError(f'Invalid stream identifier {i} for a dam')
             # all dam connectivity towards outlet
             stream_connect = connect_dict[i]
             dam_connect = list(
@@ -371,7 +371,7 @@ class Network:
 
         # check if both dictionaries have same keys
         if area_dict.keys() != storage_dict.keys():
-            raise Exception('Mismatch of keys between two dictionaries.')
+            raise KeyError('Mismatch of keys between two dictionaries')
 
         # sediment trapping efficinecy
         ste_dict = {}
@@ -437,9 +437,11 @@ class Network:
         stream_file: str,
         storage_dict: dict[int, float],
         sediment_density: float,
-        trap_threshold: float,
         year_limit: int,
+        trap_equation: bool = True,
+        trap_threshold: float = 0.1,
         brown_d: float = 0.1,
+        trap_constant: typing.Optional[float] = None,
         release_threshold: float = 0.95,
         write_output: bool = False,
         folder_path: typing.Optional[str] = None
@@ -451,6 +453,8 @@ class Network:
         individual metrics, and simulation parameters.
 
         The simulation runs for a user-defined number of years, unless all dams become inactive earlier.
+        Sediment inflow to a dam is calculated as the sum of sediment yield from the
+        dam's controlled drainage area and the sediment outflow from upstream connected dams.
         The amount of sediment trapped by a dam is calculated as the product of the sediment inflow
         to the dam and its trap efficiency, which ranges from 0 to 1. At the end of each simulation year,
         dam storage capacities are updated using a mass balance approach based on the trapped sediment.
@@ -578,16 +582,24 @@ class Network:
         sediment_density : float
             Density of sediment in kilograms per cubic meter.
 
-        trap_threshold : float
-            Minimum trap efficiency. Dams with efficiency less than or equal to this value are considered inactive.
-
         year_limit : int
             Maximum number of simulation years. Simulation stops earlier if all dams retire.
+
+        trap_equation : bool, optional
+            If True (default), trap efficiency is calculated using the Brown (1943) formula.
+            Further details can be found in `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
+
+        trap_threshold : float, optional
+            Minimum trap efficiency required to keep a dam active (default 0.1). Dams with efficiency below this value are treated as inactive.
 
         brown_d : float, optional
             Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
             with a mean value of 0.1, which is also the default. Refer to
             `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
+
+        trap_constant : float, optional
+            Fixed trap efficiency value applied when ``trap_equation=False``.
+            Must be greater than ``trap_threshold`` and less than 1. Default is None.
 
         release_threshold: float, optional
             Minimum sediment release fraction threshold of the total stream sediment input to stop the simulation.
@@ -609,10 +621,25 @@ class Network:
 
         # check validity of folder path
         if write_output:
-            if folder_path is None:
-                raise ValueError('A valid string of folder_path must be provided when write_output is True.')
+            if not isinstance(folder_path, str):
+                raise TypeError('A valid string of folder_path must be provided when write_output is True')
             if not os.path.isdir(folder_path):
-                raise NotADirectoryError('Input folder path is not valid.')
+                raise NotADirectoryError('Input folder path is not valid')
+
+        # check trap_equation
+        if not isinstance(trap_equation, bool):
+            raise TypeError(
+                f'trap_equation must be a boolean, but got type "{type(trap_equation).__name__}"'
+            )
+        if not trap_equation:
+            if trap_constant is None or not isinstance(trap_constant, float):
+                raise TypeError(
+                    f'trap_constant must be a float when "trap_equation=False", but got type "{type(trap_constant).__name__}"'
+                )
+            if not (trap_threshold < trap_constant < 1):
+                raise ValueError(
+                    f'trap_constant {trap_constant} is invalid: must satisfy trap_threshold ({trap_threshold}) < trap_constant < 1'
+                )
 
         # input location and storage capacity of dams
         base_storage = storage_dict.copy()
@@ -698,11 +725,17 @@ class Network:
             if len(dam_ids) == 0:
                 break
             # trap efficiency of dams
-            trap_efficiency = self.trap_efficiency_brown(
-                storage_dict=storage_dict,
-                area_dict=drainage_area,
-                brown_d=brown_d
-            )
+            if trap_equation:
+                trap_efficiency = self.trap_efficiency_brown(
+                    storage_dict=storage_dict,
+                    area_dict=drainage_area,
+                    brown_d=brown_d
+                )
+            else:
+                assert isinstance(trap_constant, float)
+                trap_efficiency = {
+                    d_id: trap_constant for d_id in dam_ids
+                }
             # drainage area percentage of dams
             area_percent = {
                 d_id: 100 * drainage_area[d_id] / stream_area for d_id in dam_ids
@@ -876,9 +909,11 @@ class Network:
         stream_file: str,
         storage_dict: dict[int, float],
         sediment_density: float,
-        trap_threshold: float,
         year_limit: int,
+        trap_equation: bool = True,
+        trap_threshold: float = 0.1,
         brown_d: float = 0.1,
+        trap_constant: typing.Optional[float] = None,
         release_threshold: float = 0.95,
         write_output: bool = False,
         folder_path: typing.Optional[str] = None
@@ -902,16 +937,24 @@ class Network:
         sediment_density : float
             Density of sediment in kilograms per cubic meter.
 
-        trap_threshold : float
-            Minimum trap efficiency. Dams with efficiency less than or equal to this value are considered inactive.
-
         year_limit : int
             Maximum number of simulation years. Simulation stops earlier if all dams retire.
+
+        trap_equation : bool, optional
+            If True (default), trap efficiency is calculated using the Brown (1943) formula.
+            Further details can be found in `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
+
+        trap_threshold : float, optional
+            Minimum trap efficiency required to keep a dam active (default 0.1). Dams with efficiency below this value are treated as inactive.
 
         brown_d : float, optional
             Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
             with a mean value of 0.1, which is also the default. Refer to
             `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
+
+        trap_constant : float, optional
+            Fixed trap efficiency value applied when ``trap_equation=False``.
+            Must be greater than ``trap_threshold`` and less than 1. Default is None.
 
         release_threshold: float, optional
             Minimum sediment release fraction threshold of the total stream sediment input to stop the simulation.
@@ -933,10 +976,25 @@ class Network:
 
         # check validity of folder path
         if write_output:
-            if folder_path is None:
-                raise ValueError('A valid string of folder_path must be provided when write_output is True.')
+            if not isinstance(folder_path, str):
+                raise TypeError('A valid string of folder_path must be provided when write_output is True')
             if not os.path.isdir(folder_path):
-                raise NotADirectoryError('Input folder path is not valid.')
+                raise NotADirectoryError('Input folder path is not valid')
+
+        # check trap_equation
+        if not isinstance(trap_equation, bool):
+            raise TypeError(
+                f'trap_equation must be a boolean, but got type "{type(trap_equation).__name__}"'
+            )
+        if not trap_equation:
+            if trap_constant is None or not isinstance(trap_constant, float):
+                raise TypeError(
+                    f'trap_constant must be a float when "trap_equation=False", but got type "{type(trap_constant).__name__}"'
+                )
+            if not (trap_threshold < trap_constant < 1):
+                raise ValueError(
+                    f'trap_constant {trap_constant} is invalid: must satisfy trap_threshold ({trap_threshold}) < trap_constant < 1'
+                )
 
         # input location and storage capacity of dams
         base_storage = storage_dict.copy()
@@ -1013,11 +1071,17 @@ class Network:
             if len(dam_ids) == 0:
                 break
             # trap efficiency of dams
-            trap_efficiency = self.trap_efficiency_brown(
-                storage_dict=storage_dict,
-                area_dict=drainage_area,
-                brown_d=brown_d
-            )
+            if trap_equation:
+                trap_efficiency = self.trap_efficiency_brown(
+                    storage_dict=storage_dict,
+                    area_dict=drainage_area,
+                    brown_d=brown_d
+                )
+            else:
+                assert isinstance(trap_constant, float)
+                trap_efficiency = {
+                    d_id: trap_constant for d_id in dam_ids
+                }
             # store dam-wise remaining storage percentage and trap efficiency at the begining of the year
             for d_id in dam_ids:
                 te_df.loc[year + 1, d_id] = trap_efficiency[d_id]
@@ -1132,10 +1196,13 @@ class Network:
         flwdir_file: str,
         storage_dict: dict[int, float],
         sediment_density: float,
-        trap_threshold: float,
         year_limit: int,
         folder_path: str,
-        brown_d: float = 0.1
+        trap_equation: bool = True,
+        trap_threshold: float = 0.1,
+        brown_d: float = 0.1,
+        trap_constant: typing.Optional[float] = None,
+        release_threshold: float = 0.95
     ) -> pandas.DataFrame:
 
         '''
@@ -1179,19 +1246,32 @@ class Network:
         sediment_density : float
             Density of sediment in kilograms per cubic meter.
 
-        trap_threshold : float
-            Minimum trap efficiency. Dams with efficiency less than or equal to this value are considered inactive.
-
         year_limit : int
             Maximum number of simulation years. Simulation stops earlier if all dams retire.
 
         folder_path : str
             Path to the folder where JSON and GeoJSON files will be saved.
 
+        trap_equation : bool, optional
+            If True (default), trap efficiency is calculated using the Brown (1943) formula.
+            Further details can be found in `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
+
+        trap_threshold : float, optional
+            Minimum trap efficiency required to keep a dam active (default 0.1). Dams with efficiency below this value are treated as inactive.
+
         brown_d : float, optional
             Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
             with a mean value of 0.1, which is also the default. Refer to
             `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
+
+        trap_constant : float, optional
+            Fixed trap efficiency value applied when ``trap_equation=False``.
+            Must be greater than ``trap_threshold`` and less than 1. Default is None.
+
+        release_threshold: float, optional
+            Minimum sediment release fraction threshold of the total stream sediment input to stop the simulation.
+            The default is 0.95, meaning 95% of the total stream sediment input is leaving the study area.
+            If the user does not want to consider this parameter in the simulation, set its value to 1.0.
 
         Returns
         -------
@@ -1229,9 +1309,12 @@ class Network:
             stream_file=stream_file,
             storage_dict=storage_dict,
             sediment_density=sediment_density,
-            trap_threshold=trap_threshold,
             year_limit=year_limit,
+            trap_equation=trap_equation,
+            trap_threshold=trap_threshold,
             brown_d=brown_d,
+            trap_constant=trap_constant,
+            release_threshold=release_threshold,
             write_output=True,
             folder_path=folder_path
         )
