@@ -372,13 +372,23 @@ To create a figure showing dam locations along the stream path, use the followin
     )
     
     
-To generate a figure showing the annual remaining storage of each dam in the system at the beginning of the year, use the following code:
+To generate a figure showing the annual trapping efficiency of each dam in the system at the beginning of the year, use the following code:
 
 .. code-block:: python
 
     visual.dam_remaining_storage(
         json_file=r"C:\users\username\output_folder\dam_remaining_storage.json",
         figure_file=r"C:\users\username\output_folder\dam_remaining_storage.png",
+        xtick_gap=1
+    )
+    
+To generate a figure showing the annual remaining storage of each dam in the system at the beginning of the year, use the following code:
+
+.. code-block:: python
+
+    visual.dam_trap_efficiency(
+        json_file=r"C:\users\username\output_folder\dam_trap_efficiency.json",
+        figure_file=r"C:\users\username\output_folder\dam_trap_efficiency.png",
         xtick_gap=1
     )
     
@@ -416,6 +426,10 @@ The following figures are the outputs produced by the above code.
     :align: center
     
 .. image:: _static/dam_remaining_storage.png
+    :scale: 75%
+    :align: center
+    
+.. image:: _static/dam_trap_efficiency.png
     :scale: 75%
     :align: center
     
