@@ -91,34 +91,57 @@ def test_netwrok(
         assert output['adjacent_upstream_dams'][17] == [5, 2, 13, 1]
         assert output['controlled_drainage_m2'][17] == 2978593200
         assert round(output['sediment_inflow_kg'][17]) == 534348713
-        # lite version of storage dynamics for sedimentation
+        # storage dictionary
+        storage_dict = {
+            21: 1500000,
+            5: 100000,
+            24: 60000,
+            27: 200000,
+            33: 1000000,
+        }
+        # lite version of storage dynamics for sedimentation with varying trap efficiency
         output = network.storage_dynamics_lite(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            storage_dict={
-                21: 1500000,
-                5: 100000,
-                24: 60000,
-                27: 200000,
-                33: 1000000,
-            },
+            storage_dict=storage_dict,
             year_limit=15,
             sediment_density=1300,
             trap_threshold=0.05,
             write_output=True,
             folder_path=tmp_dir
         )
+        assert isinstance(output, dict)
         assert len(output) == 5
-        # detailed version of storage dynamics for sedimentation
+        assert output['dam_lifespan']['life_year'].tolist() == [7, 6, 4, 1, 8]
+        # lite version of storage dynamics for sedimentation with constant trap efficiency
+        output = network.storage_dynamics_lite(
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
+            storage_dict=storage_dict,
+            year_limit=15,
+            sediment_density=1300,
+            trap_equation=False,
+            trap_threshold=0.05,
+            trap_constant=0.8
+        )
+        assert isinstance(output, dict)
+        assert len(output) == 5
+        assert output['dam_lifespan']['life_year'].tolist() == [3, 2, 5, 4, 5]
+        # detailed version of storage dynamics for sedimentation with constant trap efficiency
+        output = network.storage_dynamics_detailed(
+            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
+            storage_dict=storage_dict,
+            year_limit=15,
+            sediment_density=1300,
+            trap_equation=False,
+            trap_threshold=0.05,
+            trap_constant=0.8
+        )
+        assert isinstance(output, dict)
+        assert len(output) == 8
+        # detailed version of storage dynamics for sedimentation and draiange scenarios
         output = network.storage_dynamics_and_drainage_scenarios(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
             flwdir_file=os.path.join(data_folder, 'flwdir.tif'),
-            storage_dict={
-                21: 1500000,
-                5: 100000,
-                24: 60000,
-                27: 200000,
-                33: 1000000,
-            },
+            storage_dict=storage_dict,
             year_limit=15,
             sediment_density=1300,
             trap_threshold=0.05,
@@ -160,6 +183,14 @@ def test_netwrok(
         )
         assert os.path.exists(os.path.join(tmp_dir, 'dam_trapped_sediment.png'))
         assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 4
+        # plot of dam trapping
+        output = visual.dam_trap_efficiency(
+            json_file=os.path.join(tmp_dir, 'dam_trap_efficiency.json'),
+            figure_file=os.path.join(tmp_dir, 'dam_trap_efficiency.png'),
+            gui_window=False
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'dam_trap_efficiency.png'))
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 5
         # plot of dam system statistics
         output = visual.system_statistics(
             json_file=os.path.join(tmp_dir, 'system_statistics.json'),
@@ -167,4 +198,4 @@ def test_netwrok(
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'system_statistics.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 5
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 6
