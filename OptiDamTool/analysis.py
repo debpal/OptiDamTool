@@ -56,7 +56,7 @@ class Analysis:
 
         # check JSON extension of output file
         if not json_file.lower().endswith('.json'):
-            raise Exception('Output file path must have a valid JSON file extension.')
+            raise TypeError('Output file path must have a valid JSON file extension')
 
         # stream information DataFrame
         stream_df = pandas.read_json(
@@ -126,7 +126,7 @@ class Analysis:
 
         # check JSON extension of output file
         if not geojson_file.lower().endswith('.geojson'):
-            raise Exception('Output file path must have a valid GeoJSON file extension.')
+            raise TypeError('Output file path must have a valid GeoJSON file extension')
 
         # stream GeoDataFrame
         stream_gdf = geopandas.read_file(
@@ -188,7 +188,7 @@ class Analysis:
 
         # check JSON extension of output file
         if not output_file.lower().endswith('.json'):
-            raise Exception('Output file path must have a valid JSON file extension.')
+            raise TypeError('Output file path must have a valid JSON file extension')
 
         # extract values from TXT file
         with open(sediment_file, 'r') as input_sediment:

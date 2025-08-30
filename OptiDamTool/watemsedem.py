@@ -234,7 +234,7 @@ class WatemSedem:
 
         # check existence of folder path
         if not os.path.isdir(folder_path):
-            raise Exception('Input folder path is not valid.')
+            raise NotADirectoryError('Input folder path is not valid')
 
         # delineation files
         flw_col = 'ws_id'
@@ -457,7 +457,7 @@ class WatemSedem:
 
         # check existence of folder path
         if not os.path.isdir(folder_path):
-            raise Exception('Input folder path is not valid.')
+            raise NotADirectoryError('Input folder path is not valid')
 
         # region constant raster
         self.raster.reclassify_by_constant_value(
@@ -918,6 +918,10 @@ class WatemSedem:
             A message containing the number of agricultural fields detected in the output raster.
         '''
 
+        # check existence of folder path
+        if not os.path.isdir(folder_path):
+            raise NotADirectoryError('Input folder path is not valid')
+
         # temporary directory
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Esri land cover classes percentage
@@ -1173,7 +1177,7 @@ class WatemSedem:
 
         # check existence of folder path
         if not os.path.isdir(folder_path):
-            raise Exception('Input folder path is not valid.')
+            raise NotADirectoryError('Input folder path is not valid')
 
         # flow direction object
         with rasterio.open(flwdir_file) as input_flwdir:
