@@ -60,6 +60,11 @@ Provides methods for analyzing simulation outputs and generating insights.
 * Summarizes total sediment dynamics for the model region.
 * Assigns a Coordinate Reference System and the default `GTiff` driver to output Idrisi raster files from a WaTEM/SEDEM simulation.
 
+### `OptiDamTool.SystemDesign` 
+Provides methods for optimizing dam systems within a watershed using a multi-objective evolutionary computation framework.
+
+* Optimizes dam locations and storage volumes based on annual sediment inflow through watershed drainage pathways.
+
 
 ### `OptiDamTool.Visual` 
 Provides methods for visualizing simulation outputs.
