@@ -52,7 +52,6 @@ def test_system_design(
         assert len(output['solutions_nondominated']) <= 10
         assert output['solutions_nondominated'].shape[1] == 21
         assert len(output['computation_statistics']) == 9
-        print(output)
 
         # dam location and storage volume optimization and sorting by dam identifiers
         output = system_design.solution_sedimentation_management_by_ga(
@@ -86,7 +85,6 @@ def test_system_design(
         assert len(output['solutions_nondominated']) <= 10
         assert output['solutions_nondominated'].shape[1] == 24
         assert len(output['computation_statistics']) == 9
-        print(output)
 
         # dam location and storage volume optimization and sorting solutions by Euclidean metric
         output = system_design.solution_sedimentation_management_by_ga(
@@ -126,4 +124,4 @@ def test_system_design(
         assert len(output['computation_statistics']) == 9
         assert os.path.exists(os.path.join(tmp_dir, 'solutions_nondominated.json'))
         assert os.path.exists(os.path.join(tmp_dir, 'computation_statistics.json'))
-        print(output)
+        print(output['solutions_nondominated']['storage_variability'])
