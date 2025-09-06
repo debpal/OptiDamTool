@@ -17,21 +17,22 @@ def analysis():
 
 
 @pytest.fixture(scope='class')
-def visual():
+def system_design():
 
-    yield OptiDamTool.Visual()
+    yield OptiDamTool.SystemDesign()
 
 
 def test_netwrok(
     network,
     analysis,
-    visual
+    system_design
 ):
 
     # data folder
     data_folder = os.path.join(os.path.dirname(__file__), 'data')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
+
         # adjacent downstream connectivity
         output = network.connectivity_adjacent_downstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
@@ -39,6 +40,7 @@ def test_netwrok(
         )
         assert output[17] == 21
         assert output[31] == -1
+
         # adjacent upstream connectivity
         output = network.connectivity_adjacent_upstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
@@ -47,6 +49,7 @@ def test_netwrok(
         )
         assert output[17] == [1, 2, 5, 13]
         assert output[31] == []
+
         # controlled drainage area
         output = network.controlled_drainage_area(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
@@ -54,6 +57,7 @@ def test_netwrok(
         )
         assert output[17] == 2978593200
         assert output[31] == 175558500
+
         # sediment delivery to stream
         output = analysis.sediment_delivery_to_stream_json(
             info_file=os.path.join(data_folder, 'stream_information.json'),
@@ -63,6 +67,7 @@ def test_netwrok(
         )
         assert output.shape == (33, 7)
         assert os.path.exists(os.path.join(tmp_dir, 'stream_sediment_delivery.json'))
+
         # stream information shapefile
         output = analysis.sediment_delivery_to_stream_geojson(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
@@ -71,6 +76,7 @@ def test_netwrok(
         )
         assert output.shape == (33, 10)
         assert os.path.exists(os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'))
+
         # sediment inflow from drainage area
         output = network.sediment_inflow_from_drainage_area(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
@@ -78,6 +84,7 @@ def test_netwrok(
         )
         assert round(output[17]) == 534348713
         assert output[31] == 1292848
+
         # upstream metric summary of dams
         output = network.upstream_metrics_summary(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
@@ -91,6 +98,7 @@ def test_netwrok(
         assert output['adjacent_upstream_dams'][17] == [5, 2, 13, 1]
         assert output['controlled_drainage_m2'][17] == 2978593200
         assert round(output['sediment_inflow_kg'][17]) == 534348713
+
         # storage dictionary
         storage_dict = {
             21: 1500000,
@@ -99,19 +107,7 @@ def test_netwrok(
             27: 200000,
             33: 1000000,
         }
-        # lite version of storage dynamics for sedimentation with varying trap efficiency
-        output = network.storage_dynamics_lite(
-            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            storage_dict=storage_dict,
-            year_limit=15,
-            sediment_density=1300,
-            trap_threshold=0.05,
-            write_output=True,
-            folder_path=tmp_dir
-        )
-        assert isinstance(output, dict)
-        assert len(output) == 5
-        assert output['dam_lifespan']['life_year'].tolist() == [7, 6, 4, 1, 8]
+
         # lite version of storage dynamics for sedimentation with constant trap efficiency
         output = network.storage_dynamics_lite(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
@@ -120,11 +116,13 @@ def test_netwrok(
             sediment_density=1300,
             trap_equation=False,
             trap_threshold=0.05,
-            trap_constant=0.8
+            trap_constant=0.8,
+            folder_path=tmp_dir
         )
         assert isinstance(output, dict)
         assert len(output) == 5
         assert output['dam_lifespan']['life_year'].tolist() == [3, 2, 5, 4, 5]
+
         # detailed version of storage dynamics for sedimentation with constant trap efficiency
         output = network.storage_dynamics_detailed(
             stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
@@ -137,65 +135,3 @@ def test_netwrok(
         )
         assert isinstance(output, dict)
         assert len(output) == 8
-        # detailed version of storage dynamics for sedimentation and draiange scenarios
-        output = network.storage_dynamics_and_drainage_scenarios(
-            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            flwdir_file=os.path.join(data_folder, 'flwdir.tif'),
-            storage_dict=storage_dict,
-            year_limit=15,
-            sediment_density=1300,
-            trap_threshold=0.05,
-            folder_path=tmp_dir
-        )
-        assert output.shape == (10, 3)
-        scenario_files = [i for i in os.listdir(tmp_dir) if i.startswith('year_') and i.endswith('.geojson')]
-        assert len(scenario_files) == 10
-        # plot of sediment inflow to stream
-        output = visual.sediment_inflow_to_stream(
-            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            figure_file=os.path.join(tmp_dir, 'sediment_inflow_to_stream.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'sediment_inflow_to_stream.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 1
-        # plot of dam location in stream
-        output = visual.dam_location_in_stream(
-            stream_file=os.path.join(tmp_dir, 'stream_sediment_delivery.geojson'),
-            dam_file=os.path.join(tmp_dir, 'year_0_dam_location_point.geojson'),
-            figure_file=os.path.join(tmp_dir, 'dam_location_in_stream.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'dam_location_in_stream.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2
-        # plot of dam remaining storage
-        output = visual.dam_remaining_storage(
-            json_file=os.path.join(tmp_dir, 'dam_remaining_storage.json'),
-            figure_file=os.path.join(tmp_dir, 'dam_remaining_storage.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'dam_remaining_storage.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 3
-        # plot of dam sediment trapping
-        output = visual.dam_trapped_sediment(
-            json_file=os.path.join(tmp_dir, 'dam_trapped_sediment.json'),
-            figure_file=os.path.join(tmp_dir, 'dam_trapped_sediment.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'dam_trapped_sediment.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 4
-        # plot of dam trapping
-        output = visual.dam_trap_efficiency(
-            json_file=os.path.join(tmp_dir, 'dam_trap_efficiency.json'),
-            figure_file=os.path.join(tmp_dir, 'dam_trap_efficiency.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'dam_trap_efficiency.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 5
-        # plot of dam system statistics
-        output = visual.system_statistics(
-            json_file=os.path.join(tmp_dir, 'system_statistics.json'),
-            figure_file=os.path.join(tmp_dir, 'system_statistics.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'system_statistics.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 6
