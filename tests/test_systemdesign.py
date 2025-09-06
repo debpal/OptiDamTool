@@ -124,4 +124,4 @@ def test_system_design(
         assert len(output['computation_statistics']) == 9
         assert os.path.exists(os.path.join(tmp_dir, 'solutions_nondominated.json'))
         assert os.path.exists(os.path.join(tmp_dir, 'computation_statistics.json'))
-        print(output['solutions_nondominated']['storage_variability'])
+        print(output['solutions_nondominated']['storage_variability(min)'])
