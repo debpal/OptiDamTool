@@ -129,7 +129,7 @@ def test_system_design(
         output = system_design.scenario_sedimentation_management(
             variables=[[21, 5, 24, 27, 33], 150, 10, 6, 20, 100],
             storage_multiplier=10000,
-            stream_file=r"C:\Users\dpal22\Desktop\ws_run\WadiBaysh\trial\analysis\stream_with_sediment.geojson",
+            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
             model_config={
                 'sediment_density': 1300,
                 'year_limit': 15,
@@ -148,6 +148,6 @@ def test_system_design(
         assert isinstance(output, tuple)
         assert len(output) == 2
         assert isinstance(output[0], list)
-        assert len(output[0]) == 5
+        assert len(output[0]) == 6
         assert isinstance(output[1], list)
         assert len(output[1]) == 1
