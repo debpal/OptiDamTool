@@ -41,7 +41,7 @@ def test_system_design(
                 'population_size': 5
             },
             seeds=2,
-            nfe=10,
+            nfe=30,
             folder_path=tmp_dir,
             solution_sorting='by_objective_directions'
         )
@@ -74,7 +74,7 @@ def test_system_design(
                 'population_size': 5
             },
             seeds=2,
-            nfe=10,
+            nfe=30,
             folder_path=tmp_dir,
             solution_sorting='by_dam_idenfiers'
         )
@@ -119,7 +119,7 @@ def test_system_design(
         assert len(output) == 2
         assert 'solutions_nondominated' in output
         assert 'computation_statistics' in output
-        assert len(output['solutions_nondominated']) <= 10
+        assert len(output['solutions_nondominated']) <= 20
         assert output['solutions_nondominated'].shape[1] == 25
         assert len(output['computation_statistics']) == 9
         assert os.path.exists(os.path.join(tmp_dir, 'solutions_nondominated.json'))
