@@ -5,6 +5,7 @@ import pandas
 import typing
 import os
 from .watemsedem import WatemSedem
+from . import utility
 
 
 class Network:
@@ -45,6 +46,15 @@ class Network:
             is the stream identifier of the directly connected downstream dam.
             A value of -1 indicates that the dam has no downstream connectivity.
         '''
+
+        # check input variables type
+        var_type = typing.get_type_hints(
+            obj=self.connectivity_adjacent_downstream_dam
+        )
+        utility._validate_method_variable_type(
+            var_type=var_type,
+            var_value=locals()
+        )
 
         # check distinct stream identifiers for dams
         if len(set(dam_list)) < len(dam_list):
@@ -124,11 +134,12 @@ class Network:
         )
 
         # DataFrame creation for adjacent downstream connectivity
+        df_dict = {
+            'dam_id': adc_dict.keys(),
+            'adc_id': adc_dict.values()
+        }
         df = pandas.DataFrame(
-            {
-                'dam_id': adc_dict.keys(),
-                'adc_id': adc_dict.values()
-            }
+            data=df_dict
         )
 
         # non-empty adjacent upstream connectivity
@@ -341,7 +352,7 @@ class Network:
         self,
         storage_dict: dict[int, float],
         area_dict: dict[int, float],
-        brown_d: float = 0.1
+        brown_d: int | float = 0.1
     ) -> dict[int, float]:
 
         '''
@@ -371,7 +382,7 @@ class Network:
 
         # check if both dictionaries have same keys
         if area_dict.keys() != storage_dict.keys():
-            raise KeyError('Mismatch of keys between two dictionaries')
+            raise KeyError('Mismatch of keys between storage and area dictionaries')
 
         # sediment trapping efficinecy
         ste_dict = {}
@@ -380,29 +391,6 @@ class Network:
             ste_dict[dam_id] = 1 - (1 / (1 + 0.0021 * brown_d * storage_dict[dam_id] / area_km2))
 
         return ste_dict
-
-    def _df_from_dict(
-        self,
-        input_dict: dict[str, dict[int, typing.Any]]
-    ) -> pandas.DataFrame:
-
-        '''
-        A private method that converts a nested dictionary into a DataFrame.
-        The outer dictionary's keys become the column names of the resulting DataFrame.
-        Each value in the outer dictionary is a subdictionary with the same set of keys,
-        which become the row indices. Each cell in the DataFrame contains
-        the corresponding value from the subdictionary.
-        '''
-
-        series_dict = {
-            key: pandas.Series(val) for key, val in input_dict.items()
-        }
-
-        df = pandas.DataFrame(
-            data=series_dict
-        )
-
-        return df
 
     def _base_storage_df(
         self,
@@ -419,9 +407,8 @@ class Network:
             orient='index',
             columns=['storage_m3']
         )
-        df.reset_index(
-            names=['dam_id'],
-            inplace=True
+        df = df.reset_index(
+            names=['dam_id']
         )
 
         # storage percentage
@@ -436,14 +423,13 @@ class Network:
         self,
         stream_file: str,
         storage_dict: dict[int, float],
-        sediment_density: float,
+        sediment_density: int | float,
         year_limit: int,
         trap_equation: bool = True,
-        trap_threshold: float = 0.1,
-        brown_d: float = 0.1,
-        trap_constant: typing.Optional[float] = None,
-        release_threshold: float = 0.95,
-        write_output: bool = False,
+        trap_threshold: int | float = 0.1,
+        brown_d: int | float = 0.1,
+        trap_constant: typing.Optional[int | float] = None,
+        release_threshold: int | float = 0.95,
         folder_path: typing.Optional[str] = None
     ) -> dict[str, pandas.DataFrame]:
 
@@ -590,7 +576,8 @@ class Network:
             Further details can be found in `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
 
         trap_threshold : float, optional
-            Minimum trap efficiency required to keep a dam active (default 0.1). Dams with efficiency below this value are treated as inactive.
+            Minimum trap efficiency required to keep a dam active (default 0.05).
+            Dams with efficiency below this value are treated as inactive.
 
         brown_d : float, optional
             Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
@@ -606,11 +593,8 @@ class Network:
             The default is 0.95, meaning 95% of the total stream sediment input is leaving the study area.
             If the user does not want to consider this parameter in the simulation, set its value to 1.0.
 
-        write_output : bool, optional
-            If ``True``, saves the output dictionary to the specified folder. Default is ``False``.
-
         folder_path : str, optional
-            Path to the folder where JSON files will be saved. Required if ``write_output=True``.
+            Path to the folder where JSON files will be saved. If None (default), no files are saved.
 
         Returns
         -------
@@ -619,27 +603,24 @@ class Network:
             individual metrics, and simulation parameters.
         '''
 
-        # check validity of folder path
-        if write_output:
-            if not isinstance(folder_path, str):
-                raise TypeError('A valid string of folder_path must be provided when write_output is True')
-            if not os.path.isdir(folder_path):
-                raise NotADirectoryError('Input folder path is not valid')
+        # check input variables type
+        var_type = typing.get_type_hints(
+            obj=self.storage_dynamics_lite
+        )
+        utility._validate_method_variable_type(
+            var_type=var_type,
+            var_value=locals()
+        )
 
-        # check trap_equation
-        if not isinstance(trap_equation, bool):
-            raise TypeError(
-                f'trap_equation must be a boolean, but got type "{type(trap_equation).__name__}"'
-            )
-        if not trap_equation:
-            if trap_constant is None or not isinstance(trap_constant, float):
-                raise TypeError(
-                    f'trap_constant must be a float when "trap_equation=False", but got type "{type(trap_constant).__name__}"'
-                )
-            if not (trap_threshold < trap_constant < 1):
-                raise ValueError(
-                    f'trap_constant {trap_constant} is invalid: must satisfy trap_threshold ({trap_threshold}) < trap_constant < 1'
-                )
+        # validate input variable configuration
+        utility._network_storage_dynamics_config(
+            storage_dict=storage_dict,
+            year_limit=year_limit,
+            trap_equation=trap_equation,
+            trap_threshold=trap_threshold,
+            trap_constant=trap_constant,
+            folder_path=folder_path
+        )
 
         # input location and storage capacity of dams
         base_storage = storage_dict.copy()
@@ -732,7 +713,7 @@ class Network:
                     brown_d=brown_d
                 )
             else:
-                assert isinstance(trap_constant, float)
+                assert isinstance(trap_constant, (int, float))
                 trap_efficiency = {
                     d_id: trap_constant for d_id in dam_ids
                 }
@@ -812,7 +793,7 @@ class Network:
                 'sedtrap_kg': sediment_trap,
                 'sedrelease_kg': sediment_release
             }
-            year_df = self._df_from_dict(
+            year_df = utility._df_from_dict(
                 input_dict=year_dict
             )
             year_df = year_df.reset_index(
@@ -863,9 +844,8 @@ class Network:
         )
 
         # dam lifespan DataFrame
-        life_df.reset_index(
-            names=['dam_id'],
-            inplace=True
+        life_df = life_df.reset_index(
+            names=['dam_id']
         )
 
         # ouptut dictionary
@@ -886,14 +866,13 @@ class Network:
         ]
         for key, df in output.items():
             if key not in unchanged_keys:
-                df.reset_index(
-                    names=['start_year'],
-                    inplace=True
+                df = df.reset_index(
+                    names=['start_year']
                 )
                 output[key] = df
 
         # write output dictionary to JSON files
-        if write_output and isinstance(folder_path, str):
+        if folder_path is not None:
             for key, df in output.items():
                 json_file = os.path.join(folder_path, f'{key}.json')
                 df.to_json(
@@ -908,14 +887,13 @@ class Network:
         self,
         stream_file: str,
         storage_dict: dict[int, float],
-        sediment_density: float,
+        sediment_density: int | float,
         year_limit: int,
         trap_equation: bool = True,
-        trap_threshold: float = 0.1,
-        brown_d: float = 0.1,
-        trap_constant: typing.Optional[float] = None,
-        release_threshold: float = 0.95,
-        write_output: bool = False,
+        trap_threshold: int | float = 0.1,
+        brown_d: int | float = 0.1,
+        trap_constant: typing.Optional[int | float] = None,
+        release_threshold: int | float = 0.95,
         folder_path: typing.Optional[str] = None
     ) -> dict[str, pandas.DataFrame]:
 
@@ -954,18 +932,15 @@ class Network:
 
         trap_constant : float, optional
             Fixed trap efficiency value applied when ``trap_equation=False``.
-            Must be greater than ``trap_threshold`` and less than 1. Default is None.
+            Must be ``trap_threshold < trap_constant <= 1``. Default is None.
 
         release_threshold: float, optional
             Minimum sediment release fraction threshold of the total stream sediment input to stop the simulation.
             The default is 0.95, meaning 95% of the total stream sediment input is leaving the study area.
             If the user does not want to consider this parameter in the simulation, set its value to 1.0.
 
-        write_output : bool, optional
-            If ``True``, saves the output dictionary to the specified folder. Default is ``False``.
-
         folder_path : str, optional
-            Path to the folder where JSON files will be saved. Required if ``write_output=True``.
+            Path to the folder where JSON files will be saved. If None (default), no files are saved.
 
         Returns
         -------
@@ -974,27 +949,24 @@ class Network:
             and storage dynamics and trap efficiency for individual dams.
         '''
 
-        # check validity of folder path
-        if write_output:
-            if not isinstance(folder_path, str):
-                raise TypeError('A valid string of folder_path must be provided when write_output is True')
-            if not os.path.isdir(folder_path):
-                raise NotADirectoryError('Input folder path is not valid')
+        # check input variables type
+        var_type = typing.get_type_hints(
+            obj=self.storage_dynamics_lite
+        )
+        utility._validate_method_variable_type(
+            var_type=var_type,
+            var_value=locals()
+        )
 
-        # check trap_equation
-        if not isinstance(trap_equation, bool):
-            raise TypeError(
-                f'trap_equation must be a boolean, but got type "{type(trap_equation).__name__}"'
-            )
-        if not trap_equation:
-            if trap_constant is None or not isinstance(trap_constant, float):
-                raise TypeError(
-                    f'trap_constant must be a float when "trap_equation=False", but got type "{type(trap_constant).__name__}"'
-                )
-            if not (trap_threshold < trap_constant < 1):
-                raise ValueError(
-                    f'trap_constant {trap_constant} is invalid: must satisfy trap_threshold ({trap_threshold}) < trap_constant < 1'
-                )
+        # validate input variable configuration
+        utility._network_storage_dynamics_config(
+            storage_dict=storage_dict,
+            year_limit=year_limit,
+            trap_equation=trap_equation,
+            trap_threshold=trap_threshold,
+            trap_constant=trap_constant,
+            folder_path=folder_path
+        )
 
         # input location and storage capacity of dams
         base_storage = storage_dict.copy()
@@ -1078,7 +1050,7 @@ class Network:
                     brown_d=brown_d
                 )
             else:
-                assert isinstance(trap_constant, float)
+                assert isinstance(trap_constant, (int, float))
                 trap_efficiency = {
                     d_id: trap_constant for d_id in dam_ids
                 }
@@ -1153,9 +1125,8 @@ class Network:
                 life_df.loc[d_id, 'life_year'] = life_df.loc[d_id, 'life_year'] + 1
 
         # dam lifespan DataFrame
-        life_df.reset_index(
-            names=['dam_id'],
-            inplace=True
+        life_df = life_df.reset_index(
+            names=['dam_id']
         )
 
         # ouptut dictionary
@@ -1172,14 +1143,13 @@ class Network:
         ]
         for key, df in output.items():
             if key not in unchanged_keys:
-                df.reset_index(
-                    names=['start_year'],
-                    inplace=True
+                df = df.reset_index(
+                    names=['start_year']
                 )
                 output[key] = df
 
         # write output dictionary to JSON files
-        if write_output and isinstance(folder_path, str):
+        if folder_path is not None:
             for key, df in output.items():
                 json_file = os.path.join(folder_path, f'{key}.json')
                 df.to_json(
@@ -1195,14 +1165,14 @@ class Network:
         stream_file: str,
         flwdir_file: str,
         storage_dict: dict[int, float],
-        sediment_density: float,
+        sediment_density: int | float,
         year_limit: int,
         folder_path: str,
         trap_equation: bool = True,
-        trap_threshold: float = 0.1,
-        brown_d: float = 0.1,
-        trap_constant: typing.Optional[float] = None,
-        release_threshold: float = 0.95
+        trap_threshold: int | float = 0.1,
+        brown_d: int | float = 0.1,
+        trap_constant: typing.Optional[int | float] = None,
+        release_threshold: int | float = 0.95
     ) -> pandas.DataFrame:
 
         '''
@@ -1280,6 +1250,20 @@ class Network:
             The ``start_year`` starts from 0 and helps trace the creation of corresponding GeoJSON files.
         '''
 
+        # lite version of dam system storage dynamics and save output
+        lite_dict = self.storage_dynamics_detailed(
+            stream_file=stream_file,
+            storage_dict=storage_dict,
+            sediment_density=sediment_density,
+            year_limit=year_limit,
+            trap_equation=trap_equation,
+            trap_threshold=trap_threshold,
+            brown_d=brown_d,
+            trap_constant=trap_constant,
+            release_threshold=release_threshold,
+            folder_path=folder_path
+        )
+
         # stream GeoDataFrame
         stream_gdf = geopandas.read_file(
             filename=stream_file
@@ -1302,21 +1286,6 @@ class Network:
         location_file = os.path.join(folder_path, 'all_potential_dam_location.geojson')
         adl_gdf.to_file(
             filename=location_file
-        )
-
-        # lite version of dam system storage dynamics and save output
-        lite_dict = self.storage_dynamics_detailed(
-            stream_file=stream_file,
-            storage_dict=storage_dict,
-            sediment_density=sediment_density,
-            year_limit=year_limit,
-            trap_equation=trap_equation,
-            trap_threshold=trap_threshold,
-            brown_d=brown_d,
-            trap_constant=trap_constant,
-            release_threshold=release_threshold,
-            write_output=True,
-            folder_path=folder_path
         )
 
         # zipped iterator of year, dam_removed, and dam_active
