@@ -19,6 +19,7 @@ If no errors are raised, the installation is successful.
     network = OptiDamTool.Network()
     analysis = OptiDamTool.Analysis()
     visual = OptiDamTool.Visual()
+    system_design = OptiDamTool.SystemDesign()
 
 
 .. _ref_dem_to_stream:
@@ -440,4 +441,52 @@ The following figures are the outputs produced by the above code.
 .. image:: _static/system_statistics.png
     :scale: 75%
     :align: center
+
+
+
+Optimizing Dam Systems for Sedimentation
+-------------------------------------------------------
+
+Optimize dam locations and storage volumes within a watershed using a
+multi-objective evolutionary computation framework. The optimization is based
+on annual sediment inflow through watershed drainage pathways. Use the following
+code:
+
+
+.. code-block:: python
+
+    if __name__ == '__main__':
+        output = system_design.solution_sedimentation_management_by_ga(
+            dam_number=5,
+            storage_bounds=(1, 50),
+            storage_multiplier=50000,
+            stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
+            model_config={
+                'sediment_density': 1300,
+                'year_limit': 100,
+                'trap_threshold': 0.05,
+                'brown_d': 1
+            },
+            objectives = [
+                'lifespan',
+                'lifespan_std',
+                'sediment_trapped_initial',
+                'storage_sum',
+                'storage_variability',
+                'sediment_released_median'
+            ],
+            algorithm_name='NSGAII',
+            algorithm_config={
+                'population_sizee': 10
+            },
+            nfe=100,
+            seeds=4,
+            folder_path=r"C:\Users\username\output_folder",
+            constraints={
+                'lb_lifespan': 10
+            },
+            solution_sorting='by_metric_euclidean'
+        )
+
+
 

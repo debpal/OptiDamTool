@@ -54,6 +54,13 @@ Provides methods for analyzing simulation outputs and generating insights.
 * Assigns a Coordinate Reference System and the default ``GTiff`` driver to output Idrisi raster files from a WaTEM/SEDEM simulation.
 
 
+:class:`OptiDamTool.SystemDesign`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Provides methods for optimizing dam systems within a watershed using a multi-objective evolutionary computation framework.
+
+* Optimizes dam locations and storage volumes based on annual sediment inflow through watershed drainage pathways.
+
+
 :class:`OptiDamTool.Visual`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
