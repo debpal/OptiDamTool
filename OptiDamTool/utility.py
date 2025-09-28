@@ -1,108 +1,81 @@
 import typing
 import types
-import pandas
 import os
 
 
-def _validate_method_variable_type(
-    var_type: dict[str, typing.Any],
-    var_value: dict[str, typing.Any]
+def _validate_variable_origin_static_type(
+    vars_types: dict[str, typing.Any],
+    vars_values: dict[str, typing.Any]
 ) -> None:
 
     '''
-    A private method that validates input variables against their expected types.
+    Validate input variables against their expected types.
     '''
 
     # iterate name and type of method variables
-    for name, typ in var_type.items():
+    for v_name, v_type in vars_types.items():
         # continute if varibale name is return
-        if name == 'return':
+        if v_name == 'return':
             continue
-        # get original type, arguments, and value of the variable
-        typ_origin = typing.get_origin(typ) or typ
-        typ_args = typing.get_args(typ)
-        typ_val = var_value[name]
-        # if type is Union
-        if typ_origin in (typing.Union, types.UnionType):
-            if not isinstance(typ_val, typ_args):
-                typ_expect = [t.__name__ for t in typ_args]
+        # get origin type and value of the variable
+        type_origin = typing.get_origin(v_type)
+        type_value = vars_values[v_name]
+        # if origin type in None
+        if type_origin is None:
+            if not isinstance(type_value, v_type):
                 raise TypeError(
-                    f'Expected "{name}" to be one of {typ_expect}, but got type "{type(typ_val).__name__}"'
+                    f'Expected "{v_name}" to be "{v_type.__name__}", but got type "{type(type_value).__name__}"'
                 )
-        # if type is not Union
+        # if origin type in not None
         else:
-            if not isinstance(typ_val, typ_origin):
-                raise TypeError(
-                    f'Expected "{name}" to be "{typ.__name__}", but got type "{type(typ_val).__name__}"'
+            # if origin type is a Union
+            if type_origin in (typing.Union, types.UnionType):
+                # get argument types
+                type_args = tuple(
+                    typing.get_origin(arg) or arg for arg in typing.get_args(v_type)
                 )
+                if not isinstance(type_value, type_args):
+                    type_expect = [t.__name__ for t in type_args]
+                    raise TypeError(
+                        f'Expected "{v_name}" to be one of {type_expect}, but got type "{type(type_value).__name__}"'
+                    )
+            # if origin type in not a Union
+            else:
+                if not isinstance(type_value, type_origin):
+                    raise TypeError(
+                        f'Expected "{v_name}" to be "{type_origin.__name__}", but got type "{type(type_value).__name__}"'
+                    )
 
     return None
 
 
-def _network_storage_dynamics_config(
-    storage_dict: dict[int, float],
-    year_limit: int,
-    trap_equation: bool,
-    trap_threshold: float,
-    trap_constant: typing.Optional[float],
-    folder_path: typing.Optional[str]
+def _validate_json_extension(
+    json_file: str,
 ) -> None:
 
     '''
-    A private method that validates input variables configuration for
-    the methods :meth:`OptiDamTool.Network.storage_dynamics_detailed`
-    and :meth:`OptiDamTool.Network.storage_dynamics_lite`.
+    Validate that the file has a JSON extension.
     '''
 
-    # check validity of folder path
-    if folder_path is not None and not os.path.isdir(folder_path):
-        raise NotADirectoryError('Input folder_path is not valid')
-
-    # check intial dam storage capacity cannot be negative
-    for d_id in storage_dict:
-        if storage_dict[d_id] < 0:
-            raise ValueError(
-                f'Invalid negative intial storage volume {storage_dict[d_id]} for the dam identifier {d_id} was received'
-            )
-
-    # check that year_limit value is greater than 0
-    if year_limit <= 0:
-        raise ValueError(
-            f'year_limit must be greater than 0, but received {year_limit}'
+    if not json_file.lower().endswith('.json'):
+        raise TypeError(
+            'Output "json_file" path must have a valid JSON file extension'
         )
-
-    # check trap_equation
-    if not trap_equation:
-        if trap_constant is None or not isinstance(trap_constant, (int, float)):
-            raise TypeError(
-                f'trap_constant must be a numeric value when "trap_equation=False", but got type "{type(trap_constant).__name__}"'
-            )
-        if not (trap_threshold < trap_constant <= 1):
-            raise ValueError(
-                f'trap_constant {trap_constant} is invalid: must satisfy trap_threshold ({trap_threshold}) < trap_constant <= 1'
-            )
 
     return None
 
 
-def _df_from_dict(
-    input_dict: dict[str, dict[int, typing.Any]]
-) -> pandas.DataFrame:
+def _validate_folder_path(
+    folder_path: str,
+) -> None:
 
     '''
-    A private method that converts a nested dictionary into a DataFrame.
-    The outer dictionary's keys become the column names of the resulting DataFrame.
-    Each value in the outer dictionary is a subdictionary with the same set of keys,
-    which become the row indices. Each cell in the DataFrame contains
-    the corresponding value from the subdictionary.
+    Validate that the given path is a valid directory.
     '''
 
-    series_dict = {
-        key: pandas.Series(val) for key, val in input_dict.items()
-    }
+    if not os.path.isdir(folder_path):
+        raise NotADirectoryError(
+            'Input folder_path is not valid'
+        )
 
-    df = pandas.DataFrame(
-        data=series_dict
-    )
-
-    return df
+    return None
