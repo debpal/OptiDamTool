@@ -4,14 +4,16 @@ import pandas
 import bs4
 import re
 import json
+import typing
 import tempfile
 import os
+from . import utility
 
 
 class Analysis:
 
     '''
-    Provides methods for analyzing simulation outputs and generating insights.
+    Provide methods for analyzing simulation outputs and generating insights.
     '''
 
     def sediment_delivery_to_stream_json(
@@ -23,7 +25,7 @@ class Analysis:
     ) -> pandas.DataFrame:
 
         '''
-        Integrates sediment delivery data into stream segments using WaTEM/SEDEM outputs, with the extension
+        Integrate sediment delivery data into stream segments using WaTEM/SEDEM outputs, with the extension
         `Output per river segment = 1 <https://watem-sedem.github.io/watem-sedem/model_extensions.html#output-per-river-segment>`_ enabled.
 
         Parameters
@@ -54,15 +56,23 @@ class Analysis:
             represents the cumulative sediment delivery (in kilograms), including contributions from all upstream segments.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.sediment_delivery_to_stream_json
+            ),
+            vars_values=locals()
+        )
+
         # check JSON extension of output file
-        if not json_file.lower().endswith('.json'):
-            raise TypeError('Output file path must have a valid JSON file extension')
+        utility._validate_json_extension(
+            json_file=json_file
+        )
 
         # stream information DataFrame
         stream_df = pandas.read_json(
             path_or_buf=info_file,
-            orient='records',
-            lines=True
+            orient='records'
         )
 
         # integrating sediment delivery to stream segments
@@ -88,7 +98,7 @@ class Analysis:
         stream_df.to_json(
             path_or_buf=json_file,
             orient='records',
-            lines=True
+            indent=4
         )
 
         return stream_df
@@ -101,7 +111,7 @@ class Analysis:
     ) -> geopandas.GeoDataFrame:
 
         '''
-        Generates a stream GeoJSON file containing detailed information for each segment, including sediment inflow values.
+        Generate a stream GeoJSON file containing detailed information for each segment, including sediment inflow values.
         The output GeoDataFrame includes all columns from the DataFrame produced by
         :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_json`, along with two additional columns
         ``sed_ton`` and ``cumsed_ton``, which represent sediment inflow to stream segments converted from kilograms to tons.
@@ -124,6 +134,14 @@ class Analysis:
             A GeoDataFrame containing detailed information on stream segments.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.sediment_delivery_to_stream_geojson
+            ),
+            vars_values=locals()
+        )
+
         # check JSON extension of output file
         if not geojson_file.lower().endswith('.geojson'):
             raise TypeError('Output file path must have a valid GeoJSON file extension')
@@ -136,8 +154,7 @@ class Analysis:
         # sediment information DataFrame
         sediment_df = pandas.read_json(
             path_or_buf=sediment_file,
-            orient='records',
-            lines=True
+            orient='records'
         )
 
         # merging stream GeoDataFrame with information DataFrame
@@ -164,7 +181,7 @@ class Analysis:
     ) -> pandas.DataFrame:
 
         '''
-        Summarizes total sediment values for the model region using outputs from a WaTEM/SEDEM simulation
+        Summarize total sediment values for the model region using outputs from a WaTEM/SEDEM simulation
         with the extension `Only Routing = 0 <https://watem-sedem.github.io/watem-sedem/choices.html#onlyrouting>`_
         disabled. The computed totals are used to derive insights on sediment dynamics across the region.
 
@@ -186,9 +203,18 @@ class Analysis:
             A DataFrame containing summary metrics on sediment dynamics for the model region.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.sediment_summary_dynamics_region
+            ),
+            vars_values=locals()
+        )
+
         # check JSON extension of output file
-        if not output_file.lower().endswith('.json'):
-            raise TypeError('Output file path must have a valid JSON file extension')
+        utility._validate_json_extension(
+            json_file=output_file
+        )
 
         # extract values from TXT file
         with open(sediment_file, 'r') as input_sediment:
@@ -217,7 +243,7 @@ class Analysis:
         df.to_json(
             path_or_buf=output_file,
             orient='records',
-            lines=True
+            indent=4
         )
 
         return df
@@ -228,12 +254,12 @@ class Analysis:
         crs_code: int,
         output_file: str,
         target_driver: str = 'GTiff',
-        scale: float = 1,
-        offset: float = 0
+        scale: int | float = 1,
+        offset: int | float = 0
     ) -> str:
 
         '''
-        Assigns a default ``GTiff`` driver and a Coordinate Reference System (CRS) to the input raster
+        Assign a default ``GTiff`` driver and a Coordinate Reference System (CRS) to the input raster
         generated from a WaTEM/SEDEM simulation using the default
         `Idrisi raster format <https://watem-sedem.github.io/watem-sedem/choices.html#saga-grids>`_,
         which does not include CRS information. The function also applies a linear transformation to
@@ -266,6 +292,14 @@ class Analysis:
             A message confirming that all geoprocessing steps are complete.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.raster_features_retrieve
+            ),
+            vars_values=locals()
+        )
+
         # class object
         raster = GeoAnalyze.Raster()
 
@@ -295,6 +329,119 @@ class Analysis:
 
         return output
 
+    def nondominated_solution_sorting(
+        self,
+        input_file: str,
+        sorting_by: str,
+        output_file: str
+    ) -> pandas.DataFrame:
+
+        '''
+        Sort non-dominated solutions produced by the :class:`OptiDamTool.SystemDesign`
+        class according to one of the available sorting methods: dam identifiers,
+        Euclidean distance, or objective directions.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to the input JSON file ``solutions_nondominated.json`` generated by
+            :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
+
+        sorting_by : str
+            Method used to sort the output DataFrame of non-dominated solutions.
+
+            - ``dam_identifiers``
+              Sort the DataFrame by the ``d_<i>`` columns in ascending order.
+
+            - ``euclidean_metric``
+              Sort the DataFrame by the column ``euclidean_metric(<ideal_solution>)``,
+              which represents the Euclidean distance of normalized solutions to the
+              ideal solution, in ascending order.
+
+            - ``objective_directions``
+              Sort the DataFrame by the ``<obj>(<dir>)`` columns according to the
+              specified objective directions (``min`` for ascending and ``max`` for
+              descending).
+
+        output_file : str
+            Path to the JSON file where the sorted DataFrame will be saved.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A sorted DataFrame.
+        '''
+
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.nondominated_solution_sorting
+            ),
+            vars_values=locals()
+        )
+
+        # check JSON extension of output file
+        utility._validate_json_extension(
+            json_file=output_file
+        )
+
+        # check validity of input sorting option
+        valid_options = [
+            'dam_identifiers',
+            'metric_euclidean',
+            'objective_directions'
+        ]
+        if sorting_by not in valid_options:
+            raise ValueError(
+                f'Invalid solution_sorting name "{sorting_by}"; valid names are {valid_options}'
+            )
+
+        # DataFrame from JSON file
+        df = pandas.read_json(
+            path_or_buf=input_file,
+            orient='records'
+        )
+
+        # select DataFrame columns for sorting
+        df_columns = list(df.columns)
+        if sorting_by == 'dam_identifiers':
+            sort_cols = [
+                col for col in df_columns if col.startswith('d_')
+            ]
+            ascending = [True] * len(sort_cols)
+        if sorting_by == 'metric_euclidean':
+            sort_cols = [
+                col for col in df_columns if col.startswith('metric_euclidean')
+            ]
+            ascending = [True] * len(sort_cols)
+        if sorting_by == 'objective_directions':
+            sort_cols = []
+            ascending = []
+            for col in df_columns:
+                if col.endswith(('(min)', '(max)')):
+                    sort_cols.append(col)
+                    obj_dir = True if col.endswith('(min)') else False
+                    ascending.append(obj_dir)
+
+        # DataFrame sorting
+        df = df.sort_values(
+            by=sort_cols,
+            ascending=ascending,
+            ignore_index=True
+        )
+        df['count'] = [
+            i + 1 for i in range(len(df))
+        ]
+
+        # save output DataFrame
+        df.to_json(
+            path_or_buf=output_file,
+            orient='records',
+            indent=4
+        )
+
+        return df
+
     def _dam_features_extraction(
         self,
         input_file: str,
@@ -302,7 +449,7 @@ class Analysis:
     ) -> geopandas.GeoDataFrame:
 
         '''
-        Extracts dam features in the Kingdom of Saudi Arabia from the input file and
+        Extract dam features in the Kingdom of Saudi Arabia from the input file and
         translates Arabic text to English where applicable. This private utility function
         returns a GeoDataFrame containing the processed and translated dam features.
         '''
