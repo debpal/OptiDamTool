@@ -1,8 +1,8 @@
-from .watemsedem import WatemSedem
+from .watem_sedem import WatemSedem
 from .network import Network
 from .analysis import Analysis
 from .visual import Visual
-from .systemdesign import SystemDesign
+from .system_design import SystemDesign
 
 
 __all__ = [
