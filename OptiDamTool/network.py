@@ -4,15 +4,14 @@ import shapely
 import pandas
 import typing
 import os
-from .watemsedem import WatemSedem
+from .watem_sedem import WatemSedem
 from . import utility
 
 
 class Network:
 
     '''
-    Provides functionality to establish network-based
-    connectivity and operations between dams.
+    Provide functionality to establish network-based connectivity and operations between dams.
     '''
 
     def connectivity_adjacent_downstream_dam(
@@ -23,7 +22,7 @@ class Network:
     ) -> dict[int, int]:
 
         '''
-        Generates adjacent downstream connectivity between dams based on the input stream network.
+        Generate adjacent downstream connectivity between dams based on the input stream network.
         Each dam is represented by a unique stream segment identifier.
 
         Parameters
@@ -47,13 +46,12 @@ class Network:
             A value of -1 indicates that the dam has no downstream connectivity.
         '''
 
-        # check input variables type
-        var_type = typing.get_type_hints(
-            obj=self.connectivity_adjacent_downstream_dam
-        )
-        utility._validate_method_variable_type(
-            var_type=var_type,
-            var_value=locals()
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.connectivity_adjacent_downstream_dam
+            ),
+            vars_values=locals()
         )
 
         # check distinct stream identifiers for dams
@@ -104,7 +102,7 @@ class Network:
     ) -> dict[int, list[int]]:
 
         '''
-        Computes adjacent upstream connectivity between dams based on the input stream network.
+        Compute adjacent upstream connectivity between dams based on the input stream network.
         Each dam is represented by a unique stream segment identifier.
 
         Parameters
@@ -165,7 +163,7 @@ class Network:
     ) -> dict[int, float]:
 
         '''
-        Computes the controlled upstream drainage area for selected dams
+        Compute the controlled upstream drainage area for selected dams
         based on their locations within the input stream network.
         Each dam is represented by a unique stream segment identifier.
 
@@ -225,7 +223,7 @@ class Network:
     ) -> dict[int, float]:
 
         '''
-        Computes the sediment inflows in kilograms for selected dams based on their
+        Compute the sediment inflows in kilograms for selected dams based on their
         local drainage areas within the input stream network. Each dam is identified by a
         unique stream segment identifier.
 
@@ -281,7 +279,7 @@ class Network:
     ) -> dict[str, dict[int, typing.Any]]:
 
         '''
-        Computes a summary of upstream metrics for selected dams based on their
+        Compute a summary of upstream metrics for selected dams based on their
         locations within the input stream network. Each dam is identified by a unique stream
         segment identifier.
 
@@ -356,7 +354,7 @@ class Network:
     ) -> dict[int, float]:
 
         '''
-        Computes the Trap Efficiency (TE) without percentage conversion of a dam using the Brown (1943) formula.
+        Compute the Trap Efficiency (TE) without percentage conversion of a dam using the Brown (1943) formula.
         Further details can be found in `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
 
         Parameters
@@ -398,7 +396,7 @@ class Network:
     ) -> pandas.DataFrame:
 
         '''
-        A private method to convert the input storage dictionary of dams into a DataFrame.
+        Convert the input storage dictionary of dams into a DataFrame.
         '''
 
         # DataFrame from dictionary
@@ -419,7 +417,47 @@ class Network:
 
         return df
 
-    def storage_dynamics_detailed(
+    def _validate_stodym_plus_config(
+        self,
+        storage_dict: dict[int, float],
+        year_limit: int,
+        trap_equation: bool,
+        trap_threshold: float,
+        trap_constant: typing.Optional[float]
+    ) -> None:
+
+        '''
+        Validate input variables configuration for
+        the method :meth:`OptiDamTool.Network.stodym_plus`.
+        '''
+
+        # check intial dam storage capacity cannot be negative
+        for d_id in storage_dict:
+            if storage_dict[d_id] < 0:
+                raise ValueError(
+                    f'Invalid negative intial storage volume {storage_dict[d_id]} for the dam identifier {d_id} was received'
+                )
+
+        # check that year_limit value is greater than 0
+        if year_limit <= 0:
+            raise ValueError(
+                f'year_limit must be greater than 0, but received {year_limit}'
+            )
+
+        # check trap_equation
+        if not trap_equation:
+            if trap_constant is None or not isinstance(trap_constant, (int, float)):
+                raise TypeError(
+                    f'trap_constant must be a numeric value when "trap_equation=False", but got type "{type(trap_constant).__name__}"'
+                )
+            if not (trap_threshold < trap_constant <= 1):
+                raise ValueError(
+                    f'trap_constant {trap_constant} is invalid: must satisfy trap_threshold ({trap_threshold}) < trap_constant <= 1'
+                )
+
+        return None
+
+    def stodym_plus(
         self,
         stream_file: str,
         storage_dict: dict[int, float],
@@ -430,11 +468,12 @@ class Network:
         brown_d: int | float = 0.1,
         trap_constant: typing.Optional[int | float] = None,
         release_threshold: int | float = 0.95,
+        config_validation: bool = True,
         folder_path: typing.Optional[str] = None
     ) -> dict[str, pandas.DataFrame]:
 
         '''
-        Simulates the annual storage dynamics of a dam system influenced by sedimentation,
+        Simulate the annual storage dynamics of a dam system influenced by sedimentation,
         and returns a dictionary containing dam lifespan, system-wide statistics,
         individual metrics, and simulation parameters.
 
@@ -445,10 +484,16 @@ class Network:
         to the dam and its trap efficiency, which ranges from 0 to 1. At the end of each simulation year,
         dam storage capacities are updated using a mass balance approach based on the trapped sediment.
 
-        A dam is considered inactive if:
+        The simulation ends when either all individual dams become inactive or the entire dam system becomes inactive,
+        whichever occurs first.
 
+        A dam is considered inactive if:
         - Its storage capacity becomes non-positive (``<= 0``).
-        - Its sediment trap efficiency falls below or equals the specified threshold (``<= trap_threshold``).
+        - Its sediment trap efficiency falls below or equals the threshold (``<= trap_threshold``).
+
+        The dam system is considered inactive if:
+        - The maximum number of simulation years (``year_limit``) is reached.
+        - The sediment release fraction of total stream input exceeds the threshold (``> release_threshold``).
 
         Each dam in a system is uniquely identified by its stream segment identifier.
         When a dam becomes inactive, system connectivity, controlled drainage areas,
@@ -529,32 +574,9 @@ class Network:
 
             .. note::
 
-                The values in ``dam_drainage_area``, ``dam_remaining_storage``, and ``dam_trap_efficiency``
-                are recorded at the beginning of each simulation year. As a result, for each dam, the final recorded
-                value appears in the row where ``start_year`` equals the dam's lifespan **plus one**.
-                This design ensures that the final state of each dam is captured just before its removal from the system,
-                allowing users to understand the conditions that led to its inactivation.
-
-        - **simulation_parameters**: A DataFrame that stores simulation parameters at annual time steps, with the following columns:
-
-            - ``start_year``: Start of each simulation year, beginning from 1.
-            - ``active_dams``: Number of active dams at the beginning of the simulation year. This column is introduced to track dam count
-              because the stream segment identifiers of dams are neither consecutive nor sorted.
-            - ``dam_id``: Stream segment identifier of the dam.
-            - ``ds_conn``: Identifier of the directly connected downstream dam; -1 if there is no downstream connection.
-            - ``us_conn``: List of directly connected upstream dam identifiers; empty if there is no upstream connection.
-            - ``drainage_m2``: Controlled drainage area of the dam (in square meters) at the beginning of the simulation year.
-            - ``drainage_%``: Controlled drainage area percentage relative to the total stream drainage area,
-              at the beginning of the simulation year.
-            - ``storage_m3``: Remaining storage of the dam (in cubic meters) at the beginning of the simulation year.
-            - ``storage_%``: Remaining storage percentage relative to the dam’s initial storage,
-              at the beginning of the simulation year.
-            - ``trap_efficiency``: Sediment trap efficiency at the beginning of the simulation year.
-            - ``sedlocal_kg``: Sediment input (in kilograms) from the dam’s own controlled drainage area during the simulation year.
-            - ``sedtotal_kg``: Total sediment inflow to the dam (in kilograms) during the simulation year,
-              including contributions from the dam’s own drainage area and sediment released from upstream dams during the simulation year.
-            - ``sedtrap_kg``: Amount of sediment trapped by the dam (in kilograms) during the simulation year.
-            - ``sedrelease_kg``: Sediment released from the dam (in kilograms) after trapping, during the simulation year.
+                The values in ``dam_drainage_area``, ``dam_remaining_storage``, and ``dam_trap_efficiency`` are recorded
+                at the beginning of each simulation year. This design ensures that the final state of each dam is captured
+                just before its removal from the system, allowing users to understand the conditions that led to its inactivation.
 
         Parameters
         ----------
@@ -589,9 +611,14 @@ class Network:
             Must be greater than ``trap_threshold`` and less than 1. Default is None.
 
         release_threshold: float, optional
-            Minimum sediment release fraction threshold of the total stream sediment input to stop the simulation.
+            Maximum sediment release fraction threshold of the total stream sediment input to stop the simulation.
             The default is 0.95, meaning 95% of the total stream sediment input is leaving the study area.
             If the user does not want to consider this parameter in the simulation, set its value to 1.0.
+
+        config_validation: bool, optional
+            If ``True`` (default), validates the configuration of input parameters. This option is provided
+            to speed up computations in the :class:`OptiDamTool.SystemDesign` class, where configuration
+            checking is not required for every scenario generated by genetic algorithms.
 
         folder_path : str, optional
             Path to the folder where JSON files will be saved. If None (default), no files are saved.
@@ -603,24 +630,29 @@ class Network:
             individual metrics, and simulation parameters.
         '''
 
-        # check input variables type
-        var_type = typing.get_type_hints(
-            obj=self.storage_dynamics_lite
-        )
-        utility._validate_method_variable_type(
-            var_type=var_type,
-            var_value=locals()
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.stodym_plus
+            ),
+            vars_values=locals()
         )
 
+        # check the vailidity of folder path
+        if folder_path is not None:
+            utility._validate_folder_path(
+                folder_path=folder_path
+            )
+
         # validate input variable configuration
-        utility._network_storage_dynamics_config(
-            storage_dict=storage_dict,
-            year_limit=year_limit,
-            trap_equation=trap_equation,
-            trap_threshold=trap_threshold,
-            trap_constant=trap_constant,
-            folder_path=folder_path
-        )
+        if config_validation:
+            self._validate_stodym_plus_config(
+                storage_dict=storage_dict,
+                year_limit=year_limit,
+                trap_equation=trap_equation,
+                trap_threshold=trap_threshold,
+                trap_constant=trap_constant
+            )
 
         # input location and storage capacity of dams
         base_storage = storage_dict.copy()
@@ -632,7 +664,7 @@ class Network:
             storage_dict=base_storage
         )
 
-        # Stream drainage area and sediment inflow to the stream
+        # stream drainage area and sediment inflow to the stream
         stream_gdf = geopandas.read_file(
             filename=stream_file
         )
@@ -697,9 +729,6 @@ class Network:
             ]
         )
 
-        # an empty list to store simulation paramters in annual time steps
-        parameter_list = []
-
         # iterate years
         for year in range(year_limit):
             # break if all dams are removed
@@ -717,18 +746,10 @@ class Network:
                 trap_efficiency = {
                     d_id: trap_constant for d_id in dam_ids
                 }
-            # drainage area percentage of dams
-            area_percent = {
-                d_id: 100 * drainage_area[d_id] / stream_area for d_id in dam_ids
-            }
-            # remaming storage percentage of dams
-            storage_percent = {
-                d_id: 100 * storage_dict[d_id] / base_storage[d_id] for d_id in dam_ids
-            }
             # store dam-wise parameters in annual time steps
             for d_id in dam_ids:
-                drainage_df.loc[year + 1, d_id] = area_percent[d_id]
-                storage_df.loc[year + 1, d_id] = storage_percent[d_id]
+                drainage_df.loc[year + 1, d_id] = 100 * drainage_area[d_id] / stream_area
+                storage_df.loc[year + 1, d_id] = 100 * storage_dict[d_id] / base_storage[d_id]
                 te_df.loc[year + 1, d_id] = trap_efficiency[d_id]
             # check if any dam removal is required
             dam_removal = [
@@ -740,7 +761,7 @@ class Network:
             if len(dam_removal) > 0:
                 # update dam identifiers
                 dam_ids = [i for i in dam_ids if i not in dam_removal]
-                # update functions
+                # update network features
                 connection_downstream = self.connectivity_adjacent_downstream_dam(
                     stream_file=stream_file,
                     dam_list=dam_ids
@@ -779,40 +800,6 @@ class Network:
             sediment_release = {
                 d_id: sediment_inflow[d_id] - sediment_trap[d_id] for d_id in dam_ids
             }
-            # annual DataFrame of dams
-            year_dict = {
-                'ds_conn': connection_downstream,
-                'us_conn': connection_upstream,
-                'drainage_m2': drainage_area,
-                'drainage_%': area_percent,
-                'storage_m3': storage_dict,
-                'storage_%': storage_percent,
-                'trap_efficiency': trap_efficiency,
-                'sedlocal_kg': sediment_local,
-                'sedtotal_kg': sediment_inflow,
-                'sedtrap_kg': sediment_trap,
-                'sedrelease_kg': sediment_release
-            }
-            year_df = utility._df_from_dict(
-                input_dict=year_dict
-            )
-            year_df = year_df.reset_index(
-                names=['dam_id']
-            )
-            year_df = year_df[~year_df['dam_id'].isin(dam_removal)].reset_index(drop=True)
-            year_df.insert(
-                loc=0,
-                column='active_dams',
-                value=len(dam_ids)
-            )
-            year_df.insert(
-                loc=0,
-                column='start_year',
-                value=year + 1
-            )
-            # store annual DataFrame
-            if len(year_df) > 0:
-                parameter_list.append(year_df)
             # store dam-system parameters in annual time steps
             system_df.loc[year + 1, 'dam_active'] = dam_ids
             system_df.loc[year + 1, 'drainage_%'] = 100 * sum(drainage_area.values()) / stream_area
@@ -836,12 +823,6 @@ class Network:
             # update dam-wise life expectancy
             for d_id in dam_ids:
                 life_df.loc[d_id, 'life_year'] = life_df.loc[d_id, 'life_year'] + 1
-
-        # parameter DataFrame of individual dam in annual time steps
-        param_df = pandas.concat(
-            objs=parameter_list,
-            ignore_index=True
-        )
 
         # dam lifespan DataFrame
         life_df = life_df.reset_index(
@@ -856,286 +837,7 @@ class Network:
             'dam_drainage_area': drainage_df,
             'dam_remaining_storage': storage_df,
             'dam_trap_efficiency': te_df,
-            'dam_trapped_sediment': sedtrap_df,
-            'simulation_parameters': param_df
-        }
-        unchanged_keys = [
-            'dam_initial_storage',
-            'dam_lifespan',
-            'simulation_parameters'
-        ]
-        for key, df in output.items():
-            if key not in unchanged_keys:
-                df = df.reset_index(
-                    names=['start_year']
-                )
-                output[key] = df
-
-        # write output dictionary to JSON files
-        if folder_path is not None:
-            for key, df in output.items():
-                json_file = os.path.join(folder_path, f'{key}.json')
-                df.to_json(
-                    path_or_buf=json_file,
-                    orient='records',
-                    lines=True
-                )
-
-        return output
-
-    def storage_dynamics_lite(
-        self,
-        stream_file: str,
-        storage_dict: dict[int, float],
-        sediment_density: int | float,
-        year_limit: int,
-        trap_equation: bool = True,
-        trap_threshold: int | float = 0.1,
-        brown_d: int | float = 0.1,
-        trap_constant: typing.Optional[int | float] = None,
-        release_threshold: int | float = 0.95,
-        folder_path: typing.Optional[str] = None
-    ) -> dict[str, pandas.DataFrame]:
-
-        '''
-        Simulates a lightweight version of the annual storage dynamics for a dam system
-        influenced by sedimentation, and returns a dictionary with the keys ``dam_initial_storage``,
-        ``dam_lifespan``, ``system_statistics``, ``dam_remaining_storage``, and ``dam_trap_efficiency``.
-        Refer to the method :meth:`OptiDamTool.Network.storage_dynamics_detailed` for full details.
-
-        Parameters
-        ----------
-        stream_file : str
-            Path to the input stream GeoJSON file, generated by
-            :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_geojson`.
-
-        storage_dict : dict
-            Dictionary mapping dam identifiers to initial storage capacities in cubic meters.
-
-        sediment_density : float
-            Density of sediment in kilograms per cubic meter.
-
-        year_limit : int
-            Maximum number of simulation years. Simulation stops earlier if all dams retire.
-
-        trap_equation : bool, optional
-            If True (default), trap efficiency is calculated using the Brown (1943) formula.
-            Further details can be found in `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
-
-        trap_threshold : float, optional
-            Minimum trap efficiency required to keep a dam active (default 0.1). Dams with efficiency below this value are treated as inactive.
-
-        brown_d : float, optional
-            Empirical parameter used in the trap efficiency equation. It ranges from 0.046 to 1,
-            with a mean value of 0.1, which is also the default. Refer to
-            `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
-
-        trap_constant : float, optional
-            Fixed trap efficiency value applied when ``trap_equation=False``.
-            Must be ``trap_threshold < trap_constant <= 1``. Default is None.
-
-        release_threshold: float, optional
-            Minimum sediment release fraction threshold of the total stream sediment input to stop the simulation.
-            The default is 0.95, meaning 95% of the total stream sediment input is leaving the study area.
-            If the user does not want to consider this parameter in the simulation, set its value to 1.0.
-
-        folder_path : str, optional
-            Path to the folder where JSON files will be saved. If None (default), no files are saved.
-
-        Returns
-        -------
-        dict
-            A dictionary containing information on dam lifespan, system-wide statistics,
-            and storage dynamics and trap efficiency for individual dams.
-        '''
-
-        # check input variables type
-        var_type = typing.get_type_hints(
-            obj=self.storage_dynamics_lite
-        )
-        utility._validate_method_variable_type(
-            var_type=var_type,
-            var_value=locals()
-        )
-
-        # validate input variable configuration
-        utility._network_storage_dynamics_config(
-            storage_dict=storage_dict,
-            year_limit=year_limit,
-            trap_equation=trap_equation,
-            trap_threshold=trap_threshold,
-            trap_constant=trap_constant,
-            folder_path=folder_path
-        )
-
-        # input location and storage capacity of dams
-        base_storage = storage_dict.copy()
-        storage_sum = sum(base_storage.values())
-        dam_ids = list(storage_dict.keys())
-
-        # base storage DataFrame
-        bs_df = self._base_storage_df(
-            storage_dict=base_storage
-        )
-
-        # Stream drainage area and sediment inflow to the stream
-        stream_gdf = geopandas.read_file(
-            filename=stream_file
-        )
-        stream_area = max(stream_gdf['csa_m2'])
-        stream_sediment = max(stream_gdf['cumsed_kg'])
-
-        # adjacent downstream connectivity of dams
-        connection_downstream = self.connectivity_adjacent_downstream_dam(
-            stream_file=stream_file,
-            dam_list=dam_ids
-        )
-
-        # upstream metrics of dams
-        metric_dict = self.upstream_metrics_summary(
-            stream_file=stream_file,
-            dam_list=dam_ids
-        )
-
-        # initial adjacent upstream connectivity of dams
-        connection_upstream = metric_dict['adjacent_upstream_dams']
-
-        # intial drainage area of dams
-        drainage_area = metric_dict['controlled_drainage_m2']
-
-        # intial sediment inflow to dams from own drainage area
-        sediment_local = metric_dict['sediment_inflow_kg']
-
-        # intial sediment release from dams
-        sediment_release = {
-            d_id: 0.0 for d_id in dam_ids
-        }
-
-        # DataFrames for storing dam-wise parameter in annual time steps
-        storage_df = pandas.DataFrame(
-            columns=dam_ids
-        )  # remaining storage percentage relative to own intial storage
-        te_df = pandas.DataFrame(
-            columns=dam_ids
-        )  # trapping efficiency
-
-        # a DataFrame for storing dam lifespan in years
-        life_df = pandas.DataFrame(
-            index=dam_ids
-        )
-        life_df['life_year'] = 0
-
-        # a DataFrame to store dam-system paramters in annual time steps
-        system_df = pandas.DataFrame(
-            columns=[
-                'drainage_%',
-                'storage_%',
-                'sedtrap_%',
-                'sedrelease_%',
-                'dam_removed',
-                'dam_active'
-            ]
-        )
-
-        # iterate years
-        for year in range(year_limit):
-            # break if all dams are removed
-            if len(dam_ids) == 0:
-                break
-            # trap efficiency of dams
-            if trap_equation:
-                trap_efficiency = self.trap_efficiency_brown(
-                    storage_dict=storage_dict,
-                    area_dict=drainage_area,
-                    brown_d=brown_d
-                )
-            else:
-                assert isinstance(trap_constant, (int, float))
-                trap_efficiency = {
-                    d_id: trap_constant for d_id in dam_ids
-                }
-            # store dam-wise remaining storage percentage and trap efficiency at the begining of the year
-            for d_id in dam_ids:
-                te_df.loc[year + 1, d_id] = trap_efficiency[d_id]
-                storage_df.loc[year + 1, d_id] = 100 * storage_dict[d_id] / base_storage[d_id]
-            # check if any dam removal is required based on lower trap efficiency or storage
-            dam_removal = [
-                d_id for d_id in dam_ids if trap_efficiency[d_id] <= trap_threshold or storage_dict[d_id] <= 0
-            ]
-            # store inactive dams
-            system_df.loc[year + 1, 'dam_removed'] = dam_removal
-            # if any dam is removed
-            if len(dam_removal) > 0:
-                # update dam identifiers
-                dam_ids = [i for i in dam_ids if i not in dam_removal]
-                # update functions
-                connection_downstream = self.connectivity_adjacent_downstream_dam(
-                    stream_file=stream_file,
-                    dam_list=dam_ids
-                )
-                metric_dict = self.upstream_metrics_summary(
-                    stream_file=stream_file,
-                    dam_list=dam_ids
-                )
-                connection_upstream = metric_dict['adjacent_upstream_dams']
-                drainage_area = metric_dict['controlled_drainage_m2']
-                sediment_local = metric_dict['sediment_inflow_kg']
-                # update storage dictionary
-                storage_dict = {
-                    d_id: storage_dict[d_id] for d_id in dam_ids
-                }
-            # released sediment from upstream dams
-            sediment_upstream = {
-                d_id: sum([sediment_release[j] for j in connection_upstream[d_id]]) for d_id in dam_ids
-            }
-            # sediment inflow to dams from own drainage area plus outflow from upstream dams
-            sediment_inflow = {
-                d_id: sediment_local[d_id] + sediment_upstream[d_id] for d_id in dam_ids
-            }
-            # sediment trapping behind dams
-            sediment_trap = {
-                d_id: sediment_inflow[d_id] * trap_efficiency[d_id] for d_id in dam_ids
-            }
-            # sediment release from dams
-            sediment_release = {
-                d_id: sediment_inflow[d_id] - sediment_trap[d_id] for d_id in dam_ids
-            }
-            # store dam-system parameters in annual time steps
-            system_df.loc[year + 1, 'dam_active'] = dam_ids
-            system_df.loc[year + 1, 'drainage_%'] = 100 * sum(drainage_area.values()) / stream_area
-            system_df.loc[year + 1, 'storage_%'] = 100 * sum(storage_dict.values()) / storage_sum
-            system_df.loc[year + 1, 'sedtrap_%'] = 100 * sum(sediment_trap.values()) / stream_sediment
-            release_outlets = sum([sediment_release[d_id] for d_id in dam_ids if connection_downstream[d_id] == -1])
-            release_undrainage = stream_sediment - sum(sediment_local.values())
-            release_fraction = (release_outlets + release_undrainage) / stream_sediment
-            system_df.loc[year + 1, 'sedrelease_%'] = 100 * release_fraction
-            # break if sediment release cross a certain threshold of total stream sediment inputs
-            if release_fraction > release_threshold:
-                break
-            # annual filling of dam storage due to sediment trapping
-            storage_filling = {
-                d_id: sediment_trap[d_id] / sediment_density for d_id in dam_ids
-            }
-            # remaining storage of dams
-            storage_dict = {
-                d_id: storage_dict[d_id] - storage_filling[d_id] for d_id in dam_ids
-            }
-            # update dam-wise life expectancy
-            for d_id in dam_ids:
-                life_df.loc[d_id, 'life_year'] = life_df.loc[d_id, 'life_year'] + 1
-
-        # dam lifespan DataFrame
-        life_df = life_df.reset_index(
-            names=['dam_id']
-        )
-
-        # ouptut dictionary
-        output = {
-            'dam_initial_storage': bs_df,
-            'dam_lifespan': life_df,
-            'system_statistics': system_df,
-            'dam_remaining_storage': storage_df,
-            'dam_trap_efficiency': te_df
+            'dam_trapped_sediment': sedtrap_df
         }
         unchanged_keys = [
             'dam_initial_storage',
@@ -1155,12 +857,12 @@ class Network:
                 df.to_json(
                     path_or_buf=json_file,
                     orient='records',
-                    lines=True
+                    indent=4
                 )
 
         return output
 
-    def storage_dynamics_and_drainage_scenarios(
+    def stodym_plus_with_drainage_scenarios(
         self,
         stream_file: str,
         flwdir_file: str,
@@ -1176,8 +878,8 @@ class Network:
     ) -> pandas.DataFrame:
 
         '''
-        Simulates the detailed annual storage dynamics of a dam system and saves the output
-        to the specified input directory. Refer to :meth:`OptiDamTool.Network.storage_dynamics_detailed`
+        Simulate the detailed annual storage dynamics of a dam system and saves the output
+        to the specified input directory. Refer to :meth:`OptiDamTool.Network.stodym_plus`
         for full implementation details.
 
         Based on the output DataFrame ``system_statistics``, which contains a ``start_year`` column
@@ -1250,8 +952,8 @@ class Network:
             The ``start_year`` starts from 0 and helps trace the creation of corresponding GeoJSON files.
         '''
 
-        # lite version of dam system storage dynamics and save output
-        lite_dict = self.storage_dynamics_detailed(
+        # dam system storage dynamics and save output
+        lite_dict = self.stodym_plus(
             stream_file=stream_file,
             storage_dict=storage_dict,
             sediment_density=sediment_density,
