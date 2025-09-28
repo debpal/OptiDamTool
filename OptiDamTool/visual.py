@@ -3,7 +3,10 @@ import matplotlib.lines
 import matplotlib.pyplot
 import pandas
 import geopandas
+import numpy
 import os
+import typing
+from . import utility
 
 
 class Visual:
@@ -12,18 +15,42 @@ class Visual:
     Provides utilities for visualizing data.
     '''
 
+    def _validate_figure_ext(
+        self,
+        figure_file: str
+    ) -> None:
+        '''
+        Validate the extension of give figure file.
+        '''
+
+        # figure plot
+        figure = matplotlib.pyplot.figure(
+            figsize=(1, 1)
+        )
+
+        # check figure file extension
+        fig_ext = os.path.splitext(figure_file)[-1][1:]
+        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
+            raise TypeError(
+                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
+            )
+
+        matplotlib.pyplot.close(figure)
+
+        return None
+
     def sediment_inflow_to_stream(
         self,
         stream_file: str,
         figure_file: str,
-        fig_width: float = 10,
-        fig_height: float = 5,
+        fig_width: int | float = 10,
+        fig_height: int | float = 5,
         sed_title: str = 'Sediment inflow (%)',
         cumsed_title: str = 'Cumulative sediment inflow (%)',
-        stream_linewidth: float = 1,
+        stream_linewidth: int | float = 1,
         sed_colormap: str = 'tab20',
-        cumsed_colormap: str = 'winter',
-        sed_tickgap: int = 1,
+        cumsed_colormap: str = 'Accent',
+        sed_tickgap: int | float = 1,
         cumsed_tickgap: int = 20,
         tick_fontsize: int = 12,
         title_fontsize: int = 12,
@@ -71,7 +98,7 @@ class Visual:
             Name of the colormap used to generate colors for cumulative sediment percentage.
             Default is 'winter'.
 
-        sed_tickgap : int, optional
+        sed_tickgap : float, optional
             Gap between two y-axis ticks on the sediment inflow percentage colorbar. Default is 1.
 
         cumsed_tickgap : int, optional
@@ -92,18 +119,24 @@ class Visual:
             A Figure object containing plots of sediment inflow to the stream path.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.sediment_inflow_to_stream
+            ),
+            vars_values=locals()
+        )
+
+        # check validity of figure file
+        self._validate_figure_ext(
+            figure_file=figure_file
+        )
+
         # figure plot
         figure = matplotlib.pyplot.figure(
             figsize=(fig_width, fig_height)
         )
         subplot = figure.subplots(1, 2)
-
-        # check figure file extension
-        fig_ext = os.path.splitext(figure_file)[-1][1:]
-        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise TypeError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
-            )
 
         # stream GeoDataFrame
         stream_gdf = geopandas.read_file(
@@ -160,7 +193,7 @@ class Visual:
 
         # fix tick locations and labels in sediment inflow colorbar
         sed_cb = figure.get_axes()[2]
-        sed_yticks = list(range(0, sed_max + 1, sed_tickgap))
+        sed_yticks = numpy.arange(0, sed_max + 0.01, sed_tickgap, dtype=type(sed_tickgap))
         sed_cb.set_yticks(
             ticks=sed_yticks
         )
@@ -198,10 +231,10 @@ class Visual:
         stream_file: str,
         dam_file: str,
         figure_file: str,
-        fig_width: float = 6,
-        fig_height: float = 6,
+        fig_width: int | float = 6,
+        fig_height: int | float = 6,
         fig_title: str = 'Dam locations with stream identifiers',
-        stream_linewidth: float = 1,
+        stream_linewidth: int | float = 1,
         dam_marker: str = 'o',
         dam_markersize: int = 50,
         plot_damid: bool = True,
@@ -225,7 +258,7 @@ class Visual:
         dam_file : str
             Path to the input dam location vector file
             ``year_<start_year>_dam_location_point.geojson``, created by
-            :meth:`OptiDamTool.Network.storage_dynamics_and_drainage_scenarios`.
+            :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`.
 
         figure_file : str
             Path to the output figure file.
@@ -266,18 +299,24 @@ class Visual:
             A Figure object containing the dam locations plotted on the stream path.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.dam_location_in_stream
+            ),
+            vars_values=locals()
+        )
+
+        # check validity of figure file
+        self._validate_figure_ext(
+            figure_file=figure_file
+        )
+
         # figure plot
         figure = matplotlib.pyplot.figure(
             figsize=(fig_width, fig_height)
         )
         subplot = figure.subplots(1, 1)
-
-        # check figure file extension
-        fig_ext = os.path.splitext(figure_file)[-1][1:]
-        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise TypeError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
-            )
 
         # stream GeoDataFrame
         stream_gdf = geopandas.read_file(
@@ -382,17 +421,17 @@ class Visual:
         self,
         json_file: str,
         figure_file: str,
-        fig_width: float = 10,
-        fig_height: float = 5,
+        fig_width: int | float = 10,
+        fig_height: int | float = 5,
         fig_title: str = 'Dam system statistics',
         plot_storage: bool = True,
         plot_trap: bool = True,
         plot_release: bool = True,
         plot_drainage: bool = True,
-        system_linewidth: float = 3,
+        system_linewidth: int | float = 3,
         xtick_gap: int = 10,
-        ytop_offset: int = 0,
-        ybottom_offset: int = 0,
+        ytop_offset: int | float = 0,
+        ybottom_offset: int | float = 0,
         legend_loc: str = 'best',
         legend_fontsize: int = 12,
         tick_fontsize: int = 12,
@@ -418,9 +457,8 @@ class Visual:
         json_file : str
             Path to the input ``system_statistics.json`` file, created by one of the methods:
 
-            - :meth:`OptiDamTool.Network.storage_dynamics_detailed`
-            - :meth:`OptiDamTool.Network.storage_dynamics_lite`
-            - :meth:`OptiDamTool.Network.storage_dynamics_and_drainage_scenarios`
+            - :meth:`OptiDamTool.Network.stodym_plus`
+            - :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`
 
         figure_file : str
             Path to the output figure file.
@@ -453,11 +491,11 @@ class Visual:
         xtick_gap : int, optional
             Gap between two x-axis ticks. Default is 10.
 
-        ytop_offset : int, optional
+        ytop_offset : float, optional
             Positive offset to increase the upper y-axis limit above 100, improving visibility
             when plot values are close to 100. Default is 0.
 
-        ybottom_offset : int, optional
+        ybottom_offset : float, optional
             Negative offset to decrease the lower y-axis limit below 0, improving visibility
             when plot values are close to 0. Default is 0.
 
@@ -490,18 +528,24 @@ class Visual:
                 corresponding boolean parameters to ``False``.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.system_statistics
+            ),
+            vars_values=locals()
+        )
+
+        # check validity of figure file
+        self._validate_figure_ext(
+            figure_file=figure_file
+        )
+
         # figure plot
         figure = matplotlib.pyplot.figure(
             figsize=(fig_width, fig_height)
         )
         subplot = figure.subplots(1, 1)
-
-        # check figure file extension
-        fig_ext = os.path.splitext(figure_file)[-1][1:]
-        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise TypeError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
-            )
 
         # Check that at least one plot option is enabled
         check_plot = [plot_storage, plot_trap, plot_release, plot_drainage]
@@ -511,8 +555,7 @@ class Visual:
         # system statistics DataFrame
         df = pandas.read_json(
             path_or_buf=json_file,
-            orient='records',
-            lines=True
+            orient='records'
         )
 
         # plot remaining storage percentage
@@ -658,13 +701,13 @@ class Visual:
         self,
         json_file: str,
         figure_file: str,
-        fig_width: float = 10,
-        fig_height: float = 5,
+        fig_width: int | float = 10,
+        fig_height: int | float = 5,
         fig_title: str = 'Dam annual storage variations',
         colormap_name: str = 'coolwarm',
-        dam_linewidth: float = 2,
+        dam_linewidth: int | float = 2,
         xtick_gap: int = 10,
-        legend_cols: int = 2,
+        legend_cols: int = 1,
         legend_fontsize: int = 12,
         tick_fontsize: int = 12,
         axis_fontsize: int = 15,
@@ -680,9 +723,8 @@ class Visual:
         json_file : str
             Path to the input ``dam_remaining_storage.json`` file, created by one of the methods:
 
-            - :meth:`OptiDamTool.Network.storage_dynamics_detailed`
-            - :meth:`OptiDamTool.Network.storage_dynamics_lite`
-            - :meth:`OptiDamTool.Network.storage_dynamics_and_drainage_scenarios`
+            - :meth:`OptiDamTool.Network.stodym_plus`
+            - :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`
 
         figure_file : str
             Path to the output figure file.
@@ -707,7 +749,7 @@ class Visual:
             Gap between two x-axis ticks. Default is 10.
 
         legend_cols : int, optional
-            Number of columns to arrange legend items. Default is 2.
+            Number of columns to arrange legend items. Default is 1.
 
         legend_fontsize : int, optional
             Font size of the legend. Default is 12.
@@ -730,6 +772,19 @@ class Visual:
             A Figure object containing the annual storage variation of each individual dam in the system.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.dam_remaining_storage
+            ),
+            vars_values=locals()
+        )
+
+        # check validity of figure file
+        self._validate_figure_ext(
+            figure_file=figure_file
+        )
+
         # setting figure
         figure = matplotlib.pyplot.figure(
             figsize=(fig_width, fig_height)
@@ -745,18 +800,10 @@ class Visual:
         # setting subplot for legend
         plot_legend = figure.add_subplot(figure_grid[0, 4])
 
-        # check figure file extension
-        fig_ext = os.path.splitext(figure_file)[-1][1:]
-        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise TypeError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
-            )
-
         # DataFrame of dam remaining storage
         df = pandas.read_json(
             path_or_buf=json_file,
-            orient='records',
-            lines=True
+            orient='records'
         )
 
         # sort dam columns
@@ -788,9 +835,9 @@ class Visual:
         plot_legend.legend(
             handles=legend_handles,
             labels=dam_cols,
-            loc='center right',
+            loc='center',
             fontsize=legend_fontsize,
-            ncols=2,
+            ncols=legend_cols,
             frameon=False
         )
         plot_legend.axis('off')
@@ -894,15 +941,15 @@ class Visual:
         self,
         json_file: str,
         figure_file: str,
-        fig_width: float = 10,
-        fig_height: float = 5,
+        fig_width: int | float = 10,
+        fig_height: int | float = 5,
         fig_title: str = 'Dam annual sediment trapping',
         colormap_name: str = 'coolwarm',
-        dam_linewidth: float = 2,
+        dam_linewidth: int | float = 2,
         xtick_gap: int = 10,
-        ytick_gap: int = 10,
-        ybottom_offset: float = 0,
-        legend_cols: int = 2,
+        ytick_gap: int | float = 10,
+        ybottom_offset: int | float = 0,
+        legend_cols: int = 1,
         legend_fontsize: int = 12,
         tick_fontsize: int = 12,
         axis_fontsize: int = 15,
@@ -919,9 +966,8 @@ class Visual:
         json_file : str
             Path to the input ``dam_trapped_sediment.json`` file, created by one of the methods:
 
-            - :meth:`OptiDamTool.Network.storage_dynamics_detailed`
-            - :meth:`OptiDamTool.Network.storage_dynamics_lite`
-            - :meth:`OptiDamTool.Network.storage_dynamics_and_drainage_scenarios`
+            - :meth:`OptiDamTool.Network.stodym_plus`
+            - :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`
 
         figure_file : str
             Path to the output figure file.
@@ -945,7 +991,7 @@ class Visual:
         xtick_gap : int, optional
             Gap between two x-axis ticks. Default is 10.
 
-        ytick_gap : int, optional
+        ytick_gap : float, optional
             Gap between two y-axis ticks. Default is 10.
 
         ybottom_offset : float, optional
@@ -953,7 +999,7 @@ class Visual:
             when plot values are close to 0. Default is 0.
 
         legend_cols : int, optional
-            Number of columns to arrange legend items. Default is 2.
+            Number of columns to arrange legend items. Default is 1.
 
         legend_fontsize : int, optional
             Font size of the legend. Default is 12.
@@ -976,6 +1022,19 @@ class Visual:
             A Figure object containing the annual sediment trapping percentage by each dam in the system.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.dam_trapped_sediment
+            ),
+            vars_values=locals()
+        )
+
+        # check validity of figure file
+        self._validate_figure_ext(
+            figure_file=figure_file
+        )
+
         # setting figure
         figure = matplotlib.pyplot.figure(
             figsize=(fig_width, fig_height)
@@ -991,18 +1050,10 @@ class Visual:
         # setting subplot for legend
         plot_legend = figure.add_subplot(figure_grid[0, 4])
 
-        # check figure file extension
-        fig_ext = os.path.splitext(figure_file)[-1][1:]
-        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise TypeError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
-            )
-
         # DataFrame of sediment trapped by dams
         df = pandas.read_json(
             path_or_buf=json_file,
-            orient='records',
-            lines=True
+            orient='records'
         )
 
         # sort dam columns
@@ -1034,9 +1085,9 @@ class Visual:
         plot_legend.legend(
             handles=legend_handles,
             labels=dam_cols,
-            loc='center right',
+            loc='center',
             fontsize=legend_fontsize,
-            ncols=2,
+            ncols=legend_cols,
             frameon=False
         )
         plot_legend.axis('off')
@@ -1087,7 +1138,7 @@ class Visual:
             bottom=0 + ybottom_offset,
             top=yaxis_max
         )
-        yticks = range(0, yaxis_max + 1, ytick_gap)
+        yticks = numpy.arange(0, yaxis_max + 0.01, ytick_gap, dtype=type(ytick_gap))
         plot_data.set_yticks(
             ticks=yticks
         )
@@ -1142,13 +1193,13 @@ class Visual:
         self,
         json_file: str,
         figure_file: str,
-        fig_width: float = 10,
-        fig_height: float = 5,
+        fig_width: int | float = 10,
+        fig_height: int | float = 5,
         fig_title: str = 'Dam annual sediment trapping efficiency',
         colormap_name: str = 'coolwarm',
-        dam_linewidth: float = 2,
+        dam_linewidth: int | float = 2,
         xtick_gap: int = 10,
-        legend_cols: int = 2,
+        legend_cols: int = 1,
         legend_fontsize: int = 12,
         tick_fontsize: int = 12,
         axis_fontsize: int = 15,
@@ -1166,9 +1217,8 @@ class Visual:
         json_file : str
             Path to the input ``dam_trap_efficiency.json`` file, created by one of the methods:
 
-            - :meth:`OptiDamTool.Network.storage_dynamics_detailed`
-            - :meth:`OptiDamTool.Network.storage_dynamics_lite`
-            - :meth:`OptiDamTool.Network.storage_dynamics_and_drainage_scenarios`
+            - :meth:`OptiDamTool.Network.stodym_plus`
+            - :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`
 
         figure_file : str
             Path to the output figure file.
@@ -1193,7 +1243,7 @@ class Visual:
             Gap between two x-axis ticks. Default is 10.
 
         legend_cols : int, optional
-            Number of columns to arrange legend items. Default is 2.
+            Number of columns to arrange legend items. Default is 1.
 
         legend_fontsize : int, optional
             Font size of the legend. Default is 12.
@@ -1216,6 +1266,19 @@ class Visual:
             A Figure object containing the annual trapping efficiency of each dam in the system.
         '''
 
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.dam_trap_efficiency
+            ),
+            vars_values=locals()
+        )
+
+        # check validity of figure file
+        self._validate_figure_ext(
+            figure_file=figure_file
+        )
+
         # setting figure
         figure = matplotlib.pyplot.figure(
             figsize=(fig_width, fig_height)
@@ -1231,18 +1294,10 @@ class Visual:
         # setting subplot for legend
         plot_legend = figure.add_subplot(figure_grid[0, 4])
 
-        # check figure file extension
-        fig_ext = os.path.splitext(figure_file)[-1][1:]
-        if fig_ext not in list(figure.canvas.get_supported_filetypes().keys()):
-            raise TypeError(
-                f'Input figure_file extension ".{fig_ext}" is not supported for saving the figure'
-            )
-
         # DataFrame of dam trapping efficiency
         df = pandas.read_json(
             path_or_buf=json_file,
-            orient='records',
-            lines=True
+            orient='records'
         )
 
         # removing values greater than 1, if any, from the DataFrame
@@ -1279,7 +1334,7 @@ class Visual:
         plot_legend.legend(
             handles=legend_handles,
             labels=dam_cols,
-            loc='center right',
+            loc='center',
             fontsize=legend_fontsize,
             ncols=legend_cols,
             frameon=False
