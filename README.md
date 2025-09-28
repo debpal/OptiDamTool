@@ -105,7 +105,7 @@ A brief example of how to start:
 
 ```python
 import OptiDamTool
-watemsedem = OptiDamTool.WatemSedem()
+watem_sedem = OptiDamTool.WatemSedem()
 network = OptiDamTool.Network()
 ```
 
