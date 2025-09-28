@@ -1,13 +1,6 @@
 import OptiDamTool
 import pytest
 import os
-import tempfile
-
-
-@pytest.fixture(scope='class')
-def watemsedem():
-
-    yield OptiDamTool.WatemSedem()
 
 
 @pytest.fixture(scope='class')
@@ -34,70 +27,22 @@ def system_design():
     yield OptiDamTool.SystemDesign()
 
 
-@pytest.fixture
-def error_statement():
-
-    output = {
-        'value_folder_path': 'Input folder_path is not valid',
-        'type_ext_json': 'Output file path must have a valid JSON file extension',
-        'type_ext_figure': 'Input figure_file extension ".pn" is not supported for saving the figure'
-    }
-
-    return output
-
-
-def test_error_watemsedem(
-    watemsedem,
-    error_statement
-):
-
-    # dem to stream files required to run WaTEM/SEDEM
-    with pytest.raises(Exception) as exc_info:
-        watemsedem.dem_to_stream(
-            dem_file='dem.tif',
-            flwacc_percent=5,
-            folder_path='no_folder'
-        )
-    assert exc_info.value.args[0] == error_statement['value_folder_path']
-
-    # region boundary buffer raster
-    with pytest.raises(Exception) as exc_info:
-        watemsedem.model_region_extension(
-            dem_file='dem.tif',
-            buffer_units=50,
-            folder_path='no_folder'
-        )
-    assert exc_info.value.args[0] == error_statement['value_folder_path']
-
-    # land cover processing
-    with pytest.raises(Exception) as exc_info:
-        watemsedem.land_cover_esri(
-            lc_file='lc.tif',
-            stream_file='stream.shp',
-            folder_path='no_folder'
-        )
-    assert exc_info.value.args[0] == error_statement['value_folder_path']
-
-    # dam effective drainage area
-    with pytest.raises(Exception) as exc_info:
-        watemsedem.dam_controlled_drainage_polygons(
-            flwdir_file='flwdir.tif',
-            location_file='subbasin_drainage_points.shp',
-            dam_list=[1],
-            folder_path='no_folder'
-        )
-    assert exc_info.value.args[0] == error_statement['value_folder_path']
-
-
 def test_error_netwrok(
-    network,
-    error_statement
+    network
 ):
 
     # data folder
     data_folder = os.path.join(os.path.dirname(__file__), 'data')
 
-    # error for same stream identifiers in the input dam list
+    # Error: invalid dam list type
+    with pytest.raises(Exception) as exc_info:
+        network.connectivity_adjacent_downstream_dam(
+            stream_file=os.path.join(data_folder, 'stream_lines.shp'),
+            dam_list={}
+        )
+    assert exc_info.value.args[0] == 'Expected "dam_list" to be "list", but got type "dict"'
+
+    # Error: same stream identifiers in the input dam list
     with pytest.raises(Exception) as exc_info:
         network.connectivity_adjacent_downstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
@@ -105,7 +50,7 @@ def test_error_netwrok(
         )
     assert exc_info.value.args[0] == 'Duplicate stream identifiers found in the input dam list'
 
-    # error for invalid stream identifier
+    # Error: invalid stream identifier
     with pytest.raises(Exception) as exc_info:
         network.connectivity_adjacent_upstream_dam(
             stream_file=os.path.join(data_folder, 'stream_lines.shp'),
@@ -113,7 +58,7 @@ def test_error_netwrok(
         )
     assert exc_info.value.args[0] == 'Invalid stream identifier 34 for a dam'
 
-    # error for mismatch of keys between storage and drainage area dictionaries
+    # Error: mismatch of keys between storage and drainage area dictionaries
     with pytest.raises(Exception) as exc_info:
         network.trap_efficiency_brown(
             storage_dict={5: 1},
@@ -121,31 +66,20 @@ def test_error_netwrok(
         )
     assert exc_info.value.args[0] == 'Mismatch of keys between storage and area dictionaries'
 
-    # error of invalid folder path for storage dynamics lite version
+    # Error: invalid folder path for storage dynamics
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_lite(
+        network.stodym_plus(
             stream_file='stream_sediment_delivery.shp',
             storage_dict={15: 2000000},
             year_limit=15,
             sediment_density=1300,
             folder_path='tmp_dir'
         )
-    assert exc_info.value.args[0] == error_statement['value_folder_path']
+    assert exc_info.value.args[0] == 'Input folder_path is not valid'
 
-    # error of invalid folder path for storage dynamics detailed version
+    # Error: invalid variable type which is not union
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_detailed(
-            stream_file='stream_sediment_delivery.shp',
-            storage_dict={15: 2000000},
-            year_limit=15,
-            sediment_density=1300,
-            folder_path='tmp_dir'
-        )
-    assert exc_info.value.args[0] == error_statement['value_folder_path']
-
-    # error of invalid variable type which is not union
-    with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_detailed(
+        network.stodym_plus(
             stream_file='stream_sediment_delivery.shp',
             storage_dict={15: 2000000},
             year_limit=15,
@@ -154,10 +88,10 @@ def test_error_netwrok(
         )
     assert exc_info.value.args[0] == 'Expected "trap_equation" to be "bool", but got type "list"'
 
-    # error of invalid trap_equation type for storage dynamics detailed version
+    # Error: invalid vartiable type which is a unionfor storage dynamics detailed version
     typ_args = ['str', 'NoneType']
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_detailed(
+        network.stodym_plus(
             stream_file='stream_sediment_delivery.shp',
             storage_dict={15: 2000000},
             year_limit=15,
@@ -166,9 +100,9 @@ def test_error_netwrok(
         )
     assert exc_info.value.args[0] == f'Expected "folder_path" to be one of {typ_args}, but got type "int"'
 
-    # error of invalid storage_dict for storage dynamics lite version
+    # Error: invalid storage volume value
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_lite(
+        network.stodym_plus(
             stream_file='stream_sediment_delivery.shp',
             storage_dict={15: -10},
             year_limit=15,
@@ -176,9 +110,9 @@ def test_error_netwrok(
         )
     assert exc_info.value.args[0] == 'Invalid negative intial storage volume -10 for the dam identifier 15 was received'
 
-    # error of invalid year_limit for storage dynamics lite version
+    # Error: invalid year limit value
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_lite(
+        network.stodym_plus(
             stream_file='stream_sediment_delivery.shp',
             storage_dict={15: 2000000},
             year_limit=-1,
@@ -186,9 +120,9 @@ def test_error_netwrok(
         )
     assert exc_info.value.args[0] == 'year_limit must be greater than 0, but received -1'
 
-    # error of invalid trap_constant type when trap_equation=False for storage dynamics lite version
+    # Error: invalid trap constant type when trap_equation=False
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_lite(
+        network.stodym_plus(
             stream_file='stream_sediment_delivery.shp',
             storage_dict={15: 2000000},
             year_limit=15,
@@ -197,9 +131,9 @@ def test_error_netwrok(
         )
     assert exc_info.value.args[0] == 'trap_constant must be a numeric value when "trap_equation=False", but got type "NoneType"'
 
-    # error of invalid trap_constant value for storage dynamics lite version
+    # Error: invalid trap constant value
     with pytest.raises(Exception) as exc_info:
-        network.storage_dynamics_lite(
+        network.stodym_plus(
             stream_file='stream_sediment_delivery.shp',
             storage_dict={15: 2000000},
             year_limit=15,
@@ -211,11 +145,10 @@ def test_error_netwrok(
 
 
 def test_error_analysis(
-    analysis,
-    error_statement
+    analysis
 ):
 
-    # error for JSON file extension
+    # Error: JSON file extension
     with pytest.raises(Exception) as exc_info:
         analysis.sediment_delivery_to_stream_json(
             info_file='stream_information.txt',
@@ -223,16 +156,9 @@ def test_error_analysis(
             cumsed_file='Cumulative sediment segments.txt',
             json_file='stream_sediment_delivery.txt'
         )
-    assert exc_info.value.args[0] == error_statement['type_ext_json']
-    with pytest.raises(Exception) as exc_info:
-        analysis.sediment_summary_dynamics_region(
-            sediment_file='Total sediment.txt',
-            summary_file='summary.json',
-            output_file='summary_total_sediment.txt'
-        )
-    assert exc_info.value.args[0] == error_statement['type_ext_json']
+    assert exc_info.value.args[0] == 'Output "json_file" path must have a valid JSON file extension'
 
-    # error for GeoJSON file extension
+    # Error: GeoJSON file extension
     with pytest.raises(Exception) as exc_info:
         analysis.sediment_delivery_to_stream_geojson(
             stream_file='stream_lines.shp',
@@ -241,62 +167,34 @@ def test_error_analysis(
         )
     assert exc_info.value.args[0] == 'Output file path must have a valid GeoJSON file extension'
 
+    # Error: invaid sorting option of non dominated solutions
+    valid_options = [
+        'dam_identifiers',
+        'metric_euclidean',
+        'objective_directions'
+    ]
+    with pytest.raises(Exception) as exc_info:
+        analysis.nondominated_solution_sorting(
+            input_file='input_json',
+            sorting_by='non_existence_option',
+            output_file='output.json'
+        )
+    assert exc_info.value.args[0] == f'Invalid solution_sorting name "non_existence_option"; valid names are {valid_options}'
+
 
 def test_error_visual(
-    visual,
-    error_statement
+    visual
 ):
 
-    # error for invaid figure file extension for sediment inflow to stream
+    # Error: invaid figure file extension
     with pytest.raises(Exception) as exc_info:
         visual.sediment_inflow_to_stream(
             stream_file='stream.geojson',
             figure_file='sediment_inflow_to_stream.pn'
         )
-    assert exc_info.value.args[0] == error_statement['type_ext_figure']
+    assert exc_info.value.args[0] == 'Input figure_file extension ".pn" is not supported for saving the figure'
 
-    # error for invaid figure file extension for dam location in stream
-    with pytest.raises(Exception) as exc_info:
-        visual.dam_location_in_stream(
-            stream_file='stream.geojson',
-            dam_file='dam.geojson',
-            figure_file='dam_location_in_stream.pn'
-        )
-    assert exc_info.value.args[0] == error_statement['type_ext_figure']
-
-    # error for invaid figure file extension for dam remaining storage
-    with pytest.raises(Exception) as exc_info:
-        visual.dam_remaining_storage(
-            json_file='dam_remaining_storage.json',
-            figure_file='dam_remaining_storage.pn'
-        )
-    assert exc_info.value.args[0] == error_statement['type_ext_figure']
-
-    # error for invaid figure file extension for dam trapped sediment
-    with pytest.raises(Exception) as exc_info:
-        visual.dam_trapped_sediment(
-            json_file='dam_trapped_sediment.json',
-            figure_file='dam_trapped_sediment.pn'
-        )
-    assert exc_info.value.args[0] == error_statement['type_ext_figure']
-
-    # error for invaid figure file extension for dam trap efficiency
-    with pytest.raises(Exception) as exc_info:
-        visual.dam_trap_efficiency(
-            json_file='dam_trap_efficiency.json',
-            figure_file='dam_trap_efficiency.pn'
-        )
-    assert exc_info.value.args[0] == error_statement['type_ext_figure']
-
-    # error for invaid figure file extension for system statistics
-    with pytest.raises(Exception) as exc_info:
-        visual.system_statistics(
-            json_file='system_statistics.json',
-            figure_file='system_statistics.pn'
-        )
-    assert exc_info.value.args[0] == error_statement['type_ext_figure']
-
-    # error if all plot options are set to False for system statistics
+    # Error: all plot options are set to False for system statistics
     with pytest.raises(Exception) as exc_info:
         visual.system_statistics(
             json_file='system_statistics.json',
@@ -310,36 +208,23 @@ def test_error_visual(
 
 
 def test_error_systemdesign(
-    system_design,
-    error_statement
+    system_design
 ):
 
     # data folder
     data_folder = os.path.join(os.path.dirname(__file__), 'data')
 
+    # stream file
+    stream_file = os.path.join(data_folder, 'stream_with_sediment.geojson')
+
     # input varilables
     dam_number = 5
     storage_bounds = (1, 50)
     storage_multiplier = 50000
-    stream_file = 'stream_with_sediment.geojson'
-    model_config = {
-        'sediment_density': 1300,
-        'year_limit': 100
-    }
-    objectives = [
-        'lifespan',
-    ]
-    algorithm_name = 'NSGAII'
     algorithm_config = {
         'population_size': 10
     }
-    nfe = 50
     seeds = 2
-    sorting_methods = [
-        'by_objective_directions',
-        'by_dam_idenfiers',
-        'by_metric_euclidean'
-    ]
     valid_modelconfig = [
         'sediment_density',
         'year_limit',
@@ -360,143 +245,98 @@ def test_error_systemdesign(
     valid_objectives = list(system_design.mapping_objective_direction.keys())
     valid_constraints = list(system_design.mapping_constraint_operator.keys())
 
-    # error for sedimentation management by genetic algorithm
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        # error for invaid folder path
-        with pytest.raises(Exception) as exc_info:
-            system_design.solution_sedimentation_management_by_ga(
-                dam_number=dam_number,
-                storage_bounds=storage_bounds,
-                storage_multiplier=storage_multiplier,
-                stream_file=stream_file,
-                model_config=model_config,
-                objectives=objectives,
-                algorithm_name=algorithm_name,
-                algorithm_config=algorithm_config,
-                seeds=seeds,
-                nfe=nfe,
-                folder_path='tmp_dir'
-            )
-        assert exc_info.value.args[0] == error_statement['value_folder_path']
-        # error for invaid seed number
-        with pytest.raises(Exception) as exc_info:
-            system_design.solution_sedimentation_management_by_ga(
-                dam_number=dam_number,
-                storage_bounds=storage_bounds,
-                storage_multiplier=storage_multiplier,
-                stream_file=stream_file,
-                model_config=model_config,
-                objectives=objectives,
-                algorithm_name=algorithm_name,
-                algorithm_config=algorithm_config,
-                seeds=-2,
-                nfe=nfe,
-                folder_path=tmp_dir
-            )
-        assert exc_info.value.args[0] == 'Input seeds must be greater than or equal to 1, but received -2'
-        # error for invaid sorting method name
-        with pytest.raises(Exception) as exc_info:
-            system_design.solution_sedimentation_management_by_ga(
-                dam_number=dam_number,
-                storage_bounds=storage_bounds,
-                storage_multiplier=storage_multiplier,
-                stream_file=stream_file,
-                model_config=model_config,
-                objectives=objectives,
-                algorithm_name=algorithm_name,
-                algorithm_config=algorithm_config,
-                seeds=seeds,
-                nfe=nfe,
-                folder_path=tmp_dir,
-                solution_sorting='by_metric_none'
-            )
-        assert exc_info.value.args[0] == f'Invalid solution_sorting name "by_metric_none"; valid names are {sorting_methods}'
-
-    # error test for storage_bounds length greater than 2
+    # Error: storage_bounds length greater than 2
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_variable_config(
-            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
+        system_design._validate_preliminary_config(
+            stream_file=stream_file,
             dam_number=dam_number,
             storage_bounds=(1, 50, 100),
-            storage_multiplier=storage_multiplier
+            storage_multiplier=storage_multiplier,
+            seeds=seeds
         )
     assert exc_info.value.args[0] == 'storage_bounds must contain exactly 2 integers, but received 3 elements'
 
-    # error test for invalid value type in storage_bounds
+    # Error: invalid value type in storage_bounds
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_variable_config(
-            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
+        system_design._validate_preliminary_config(
+            stream_file=stream_file,
             dam_number=dam_number,
             storage_bounds=(1.5, 50),
-            storage_multiplier=storage_multiplier
+            storage_multiplier=storage_multiplier,
+            seeds=seeds
         )
     assert exc_info.value.args[0] == 'Each value in storage_bounds must be an integer, but got 1.5 of type "float"'
 
-    # error test for invalid value type in storage_bounds
+    # Error: value less than 1 in storage_bounds
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_variable_config(
-            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
-            dam_number=dam_number,
-            storage_bounds=(1.5, 50),
-            storage_multiplier=storage_multiplier
-        )
-    assert exc_info.value.args[0] == 'Each value in storage_bounds must be an integer, but got 1.5 of type "float"'
-
-    # error test for value less than 1 in storage_bounds
-    with pytest.raises(Exception) as exc_info:
-        system_design._validate_variable_config(
-            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
+        system_design._validate_preliminary_config(
+            stream_file=stream_file,
             dam_number=dam_number,
             storage_bounds=(0, 50),
-            storage_multiplier=storage_multiplier
+            storage_multiplier=storage_multiplier,
+            seeds=seeds
         )
     assert exc_info.value.args[0] == 'Each value in storage_bounds must be greater than or equal to 1, but received 0'
 
-    # error test for minimum is greater than maximum in storage_bounds
+    # Error: minimum is greater than maximum in storage_bounds
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_variable_config(
-            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
+        system_design._validate_preliminary_config(
+            stream_file=stream_file,
             dam_number=dam_number,
             storage_bounds=(10, 5),
-            storage_multiplier=storage_multiplier
+            storage_multiplier=storage_multiplier,
+            seeds=seeds
         )
     assert exc_info.value.args[0] == 'The lower bound 10 must be strictly less than the upper bound 5 in storage_bounds'
 
-    # error test for storage_multiplier less than 0
+    # Error: storage_multiplier less than 0
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_variable_config(
-            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
+        system_design._validate_preliminary_config(
+            stream_file=stream_file,
             dam_number=dam_number,
             storage_bounds=storage_bounds,
-            storage_multiplier=-1000
+            storage_multiplier=-1000,
+            seeds=seeds
         )
     assert exc_info.value.args[0] == 'storage_multiplier must be greater than 0, but received -1000'
 
-    # error test for dam number cannot be exceeded stream segments
+    # Error: dam number cannot be exceeded stream segments
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_variable_config(
-            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
+        system_design._validate_preliminary_config(
+            stream_file=stream_file,
             dam_number=50,
             storage_bounds=storage_bounds,
-            storage_multiplier=storage_multiplier
+            storage_multiplier=storage_multiplier,
+            seeds=seeds
         )
     assert exc_info.value.args[0] == 'dam_number 50 is out of range; expected 1 <= dam_number < 33'
 
-    # error test for invalid model_config key type
+    # Error: invaid seed number
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_model_config(
-            model_config={1: 5}
+        system_design._validate_preliminary_config(
+            stream_file=stream_file,
+            dam_number=dam_number,
+            storage_bounds=storage_bounds,
+            storage_multiplier=storage_multiplier,
+            seeds=-2
         )
-    assert exc_info.value.args[0] == 'Key "1" in model_config must be a string, but got type "int"'
+    assert exc_info.value.args[0] == 'Input seeds must be greater than or equal to 1, but received -2'
 
-    # error test for invalid model_config key name
+    # Error: invalid stodym_config key type
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_model_config(
-            model_config={'invalid_key': 5}
+        system_design._validate_kwargs_stodym_plus(
+            stodym_config={1: 5}
         )
-    assert exc_info.value.args[0] == f'Invalid variable "invalid_key" in model_config; valid names are {valid_modelconfig}'
+    assert exc_info.value.args[0] == 'Key "1" in stodym_config must be a string, but got type "int"'
 
-    # error test for required key in algorithm_config
+    # Error: invalid stodym_config key name
+    with pytest.raises(Exception) as exc_info:
+        system_design._validate_kwargs_stodym_plus(
+            stodym_config={'invalid_key': 5}
+        )
+    assert exc_info.value.args[0] == f'Invalid variable "invalid_key" in stodym_config; valid names are {valid_modelconfig}'
+
+    # Error: invalid genetic algorithm name
     with pytest.raises(Exception) as exc_info:
         system_design._validate_algorithm_config(
             algorithm_name='NSGA5',
@@ -504,7 +344,7 @@ def test_error_systemdesign(
         )
     assert exc_info.value.args[0] == f'Invalid genetic algorithm name "NSGA5"; valid names are {valid_algorithms}'
 
-    # error test for invalid key name in algorithm_config
+    # Error: invalid key name in algorithm_config
     with pytest.raises(Exception) as exc_info:
         system_design._validate_algorithm_config(
             algorithm_name='NSGAII',
@@ -512,7 +352,7 @@ def test_error_systemdesign(
         )
     assert exc_info.value.args[0] == f'Invalid variable "invalid_key" in algorithm_config; valid names are {valid_algorithmargs}'
 
-    # error test for required key in algorithm_config
+    # Error: required key in algorithm_config
     with pytest.raises(Exception) as exc_info:
         system_design._validate_algorithm_config(
             algorithm_name='NSGAII',
@@ -520,7 +360,7 @@ def test_error_systemdesign(
         )
     assert exc_info.value.args[0] == 'Required key "population_size" is missing in algorithm_config'
 
-    # error test for invalid value type of required key in model_config
+    # Error: invalid value type of required key in algorithm_config
     with pytest.raises(Exception) as exc_info:
         system_design._validate_algorithm_config(
             algorithm_name='NSGAII',
@@ -528,28 +368,28 @@ def test_error_systemdesign(
         )
     assert exc_info.value.args[0] == 'Value for "population_size" must be an integer, but got type "str"'
 
-    # error test for required key in model_config
+    # Error: required key in stodym_config
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_model_config(
-            model_config={'year_limit': 5}
+        system_design._validate_kwargs_stodym_plus(
+            stodym_config={'year_limit': 5}
         )
-    assert exc_info.value.args[0] == 'Required key "sediment_density" is missing from model_config'
+    assert exc_info.value.args[0] == 'Required key "sediment_density" is missing from stodym_config'
 
-    # error test for invalid objective name
+    # Error: invalid objective name
     with pytest.raises(Exception) as exc_info:
         system_design._validate_objectives(
             objectives=['no_lifespan']
         )
     assert exc_info.value.args[0] == f'Invalid objective "no_lifespan"; valid names are {valid_objectives}'
 
-    # error test for empty objective list
+    # Error: empty objective list
     with pytest.raises(Exception) as exc_info:
         system_design._validate_objectives(
             objectives=[]
         )
     assert exc_info.value.args[0] == '"objectives" cannot be an empty list'
 
-    # error test for duplicate name in objective list
+    # Error: duplicate name in objective list
     with pytest.raises(Exception) as exc_info:
         duplicate_objectives = ['lifespan'] * 2
         system_design._validate_objectives(
@@ -557,21 +397,21 @@ def test_error_systemdesign(
         )
     assert exc_info.value.args[0] == f'Duplicate names found in objective list: {duplicate_objectives}'
 
-    # error test for empty constraint dictionary
+    # Error: empty constraint dictionary
     with pytest.raises(Exception) as exc_info:
         system_design._validate_constraints(
             constraints={}
         )
     assert exc_info.value.args[0] == '"constraints" cannot be an empty dictionary'
 
-    # error test for invalid contraint name
+    # Error: invalid contraint name
     with pytest.raises(Exception) as exc_info:
         system_design._validate_constraints(
             constraints={'invalid_constraint': 1}
         )
     assert exc_info.value.args[0] == f'Invalid constraint "invalid_constraint"; valid names are {valid_constraints}'
 
-    # error test for empty constraint dictionary
+    # Error: invalid constraint dictionary value type
     with pytest.raises(Exception) as exc_info:
         system_design._validate_constraints(
             constraints={'lb_lifespan': '1'}

@@ -27,8 +27,8 @@ def test_visual(
     # temporary direcotry
     with tempfile.TemporaryDirectory() as tmp_dir:
 
-        # detailed version of storage dynamics for sedimentation and draiange scenarios
-        output = network.storage_dynamics_and_drainage_scenarios(
+        # Pass: detailed version of storage dynamics for sedimentation and draiange scenarios
+        output = network.stodym_plus_with_drainage_scenarios(
             stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
             flwdir_file=os.path.join(data_folder, 'flwdir.tif'),
             storage_dict={
@@ -47,7 +47,7 @@ def test_visual(
         scenario_files = [i for i in os.listdir(tmp_dir) if i.startswith('year_') and i.endswith('.geojson')]
         assert len(scenario_files) == 10
 
-        # plot of sediment inflow to stream
+        # Pass: plot of sediment inflow to stream
         output = visual.sediment_inflow_to_stream(
             stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
             figure_file=os.path.join(tmp_dir, 'sediment_inflow_to_stream.png'),
@@ -56,7 +56,7 @@ def test_visual(
         assert os.path.exists(os.path.join(tmp_dir, 'sediment_inflow_to_stream.png'))
         assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 1
 
-        # plot of dam location in stream
+        # Pass: plot of dam location in stream
         output = visual.dam_location_in_stream(
             stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
             dam_file=os.path.join(tmp_dir, 'year_0_dam_location_point.geojson'),
@@ -66,7 +66,7 @@ def test_visual(
         assert os.path.exists(os.path.join(tmp_dir, 'dam_location_in_stream.png'))
         assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2
 
-        # plot of dam remaining storage
+        # Pass: plot of dam remaining storage
         output = visual.dam_remaining_storage(
             json_file=os.path.join(tmp_dir, 'dam_remaining_storage.json'),
             figure_file=os.path.join(tmp_dir, 'dam_remaining_storage.png'),
@@ -75,7 +75,7 @@ def test_visual(
         assert os.path.exists(os.path.join(tmp_dir, 'dam_remaining_storage.png'))
         assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 3
 
-        # plot of dam sediment trapping
+        # Pass: plot of dam sediment trapping
         output = visual.dam_trapped_sediment(
             json_file=os.path.join(tmp_dir, 'dam_trapped_sediment.json'),
             figure_file=os.path.join(tmp_dir, 'dam_trapped_sediment.png'),
@@ -84,7 +84,7 @@ def test_visual(
         assert os.path.exists(os.path.join(tmp_dir, 'dam_trapped_sediment.png'))
         assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 4
 
-        # plot of dam trapping
+        # Pass: plot of dam trapping efficiency
         output = visual.dam_trap_efficiency(
             json_file=os.path.join(tmp_dir, 'dam_trap_efficiency.json'),
             figure_file=os.path.join(tmp_dir, 'dam_trap_efficiency.png'),
@@ -93,7 +93,7 @@ def test_visual(
         assert os.path.exists(os.path.join(tmp_dir, 'dam_trap_efficiency.png'))
         assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 5
 
-        # plot of dam system statistics
+        # Pass: plot of dam system statistics
         output = visual.system_statistics(
             json_file=os.path.join(tmp_dir, 'system_statistics.json'),
             figure_file=os.path.join(tmp_dir, 'system_statistics.png'),

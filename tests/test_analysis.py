@@ -19,7 +19,7 @@ def test_analysis(
     data_folder = os.path.join(os.path.dirname(__file__), 'data')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        # summary of total sediment dynamics
+        # Pass: summary of total sediment dynamics
         output = analysis.sediment_summary_dynamics_region(
             sediment_file=os.path.join(data_folder, 'Total sediment.txt'),
             summary_file=os.path.join(data_folder, 'summary.json'),
@@ -27,7 +27,7 @@ def test_analysis(
         )
         assert output.shape == (4, 6)
         assert os.path.exists(os.path.join(tmp_dir, 'summary_total_sediment.json'))
-        # raster features retrieve
+        # Pass: retrieve raster features
         output = analysis.raster_features_retrieve(
             input_file=os.path.join(data_folder, 'WATEREROS_kg.rst'),
             crs_code=32638,
@@ -38,7 +38,7 @@ def test_analysis(
         with rasterio.open(os.path.join(tmp_dir, 'WATEREROS_ton.tif')) as input_raster:
             raster_array = input_raster.read(1)
             assert round(raster_array.max()) == 217735
-        # private function for dam extraction features
+        # Pass: private function for dam extraction features
         output = analysis._dam_features_extraction(
             input_file=os.path.join(data_folder, 'dam_features_sample.geojson'),
             output_file=os.path.join(tmp_dir, 'dam_features_extracted.geojson')

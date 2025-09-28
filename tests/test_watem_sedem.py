@@ -20,7 +20,7 @@ def test_watemsedem(
     data_folder = os.path.join(os.path.dirname(__file__), 'data')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        # dem to stream files required to run WaTEM/SEDEM
+        # Pass: dem to stream files
         output = watemsedem.dem_to_stream(
             dem_file=os.path.join(data_folder, 'dem.tif'),
             flwacc_percent=2,
@@ -37,7 +37,7 @@ def test_watemsedem(
         assert summary_dict['Number of valid DEM cells'] == 7862266
         assert summary_dict['Number of stream segments'] == 33
         assert summary_dict['Number of outlets'] == 1
-        # region boundary buffer raster
+        # Pass: raster with buffer region
         output = watemsedem.model_region_extension(
             dem_file=os.path.join(data_folder, 'dem.tif'),
             buffer_units=50,
@@ -48,7 +48,7 @@ def test_watemsedem(
         assert os.path.exists(os.path.join(tmp_dir, 'region_buffer.tif'))
         assert output['extended area (m^2)'] == 7806124800
         assert output['difference area (m^2)'] == 730085400
-        # raster extension and NoData conversion
+        # Pass: raster extension and NoData conversion
         output = watemsedem.raster_extension(
             input_file=os.path.join(tmp_dir, 'stream_lines.tif'),
             fill_value=0,
@@ -63,7 +63,7 @@ def test_watemsedem(
             raster_array = input_raster.read(1)
             assert -9999 not in raster_array
             assert 0 in raster_array
-        # constant raster and NoData conversion
+        # Pass: constant raster
         output = watemsedem.raster_constant_extension(
             input_file=os.path.join(tmp_dir, 'region.tif'),
             constant_value=0.1694,
@@ -80,7 +80,7 @@ def test_watemsedem(
             assert -9999 not in raster_array
             assert 0 in raster_array
             assert 0.1694 in raster_array
-        # raster clipping by bounding box
+        # Pass: raster clipping by bounding box
         output = watemsedem.raster_clipping_by_bounding_box(
             input_file=os.path.join(data_folder, 'R_clipped.tif'),
             shape_file=os.path.join(tmp_dir, 'region.shp'),
@@ -93,7 +93,7 @@ def test_watemsedem(
         with rasterio.open(os.path.join(tmp_dir, 'R_box.tif')) as input_raster:
             raster_array = input_raster.read(1)
             assert -9999 in raster_array
-        # raster reprojection, cliiping, and rescaling
+        # Pass: raster reprojection, cliiping, and rescaling
         output = watemsedem.raster_reproject_clipping_rescaling(
             input_file=os.path.join(tmp_dir, 'R_box.tif'),
             resampling_method='bilinear',
@@ -109,7 +109,7 @@ def test_watemsedem(
             raster_array = input_raster.read(1)
             assert -9999 in raster_array
             assert round(raster_array.max()) == 167
-        # multiplication of soil erodibility and rainfall erosivity factors
+        # Pass: multiplication of soil erodibility and rainfall erosivity factors
         output = watemsedem.rusle_kr(
             k_file=os.path.join(tmp_dir, 'RUSLE_K.tif'),
             r_file=os.path.join(tmp_dir, 'RUSLE_R.tif'),
@@ -121,7 +121,7 @@ def test_watemsedem(
             raster_array = input_raster.read(1)
             assert -9999 in raster_array
             assert round(raster_array.max()) == 28252
-        # land cover processing
+        # Pass: land cover processing
         output = watemsedem.land_cover_esri(
             lc_file=os.path.join(data_folder, 'land_cover_clipped.tif'),
             stream_file=os.path.join(tmp_dir, 'stream_lines.shp'),
@@ -133,14 +133,14 @@ def test_watemsedem(
         assert os.path.exists(os.path.join(tmp_dir, 'land_cover_extract_cropland.shp'))
         assert os.path.exists(os.path.join(tmp_dir, 'land_cover_cropland_split.tif'))
         assert output == 'Total agricultural lands identified: 1417'
-        # land management factor
+        # Pass: land management factor
         output = watemsedem.land_management_factor(
             lc_file=os.path.join(data_folder, 'land_cover_clipped.tif'),
             stream_file=os.path.join(tmp_dir, 'stream_lines.shp'),
             output_file=os.path.join(tmp_dir, 'RUSLE_C.tif')
         )
         output == [0, 0.013, 0.22, 0.301, 0.374, 1]
-        # raster driver conversion to Idrisi format
+        # Pass: raster driver conversion to Idrisi format
         output = watemsedem.raster_driver_to_rst(
             file_dict={
                 'landuse': os.path.join(tmp_dir, 'land_cover_cropland_split.tif')
