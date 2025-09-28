@@ -15,7 +15,7 @@ If no errors are raised, the installation is successful.
 .. code-block:: python
 
     import OptiDamTool
-    watemsedem = OptiDamTool.WatemSedem()
+    watem_sedem = OptiDamTool.WatemSedem()
     network = OptiDamTool.Network()
     analysis = OptiDamTool.Analysis()
     visual = OptiDamTool.Visual()
@@ -36,7 +36,7 @@ A sample Digital Elevation Model (DEM) raster file is available in the
 
 .. code-block:: python
 
-    watemsedem.dem_to_stream(
+    watem_sedem.dem_to_stream(
         dem_file=r"C:\users\username\input_data\dem.tif",
         flwacc_percent=1,
         folder_path=r"C:\users\username\output_folder"
@@ -52,7 +52,7 @@ is used to create an extended region raster that includes the desired buffer zon
 
 .. code-block:: python
     
-    watemsedem.model_region_extension(
+    watem_sedem.model_region_extension(
         dem_file=r"C:\users\username\input_folder\dem.tif",
         buffer_units=50,
         folder_path=r"C:\users\username\output_folder"
@@ -66,7 +66,7 @@ During this process, NoData areas are replaced with a specified fill value, resu
 
 .. code-block:: python
     
-    watemsedem.raster_extension(
+    watem_sedem.raster_extension(
         input_file=r"C:\users\username\output_folder\stream_lines.tif",
         fill_value=0,
         region_file=r"C:\users\username\output_folder\region_buffer.tif",
@@ -80,7 +80,7 @@ a constant-value raster can be created efficiently, as shown below:
 
 .. code-block:: python
     
-    watemsedem.raster_constant_extension(
+    watem_sedem.raster_constant_extension(
         input_file=r"C:\users\username\output_folder\region.tif",
         constant_value=1,
         region_file=r"C:\users\username\output_folder\region_buffer.tif",
@@ -101,7 +101,7 @@ to match the CRS of the raster.
 
 .. code-block:: python
     
-    watemsedem.raster_clipping_by_bounding_box(
+    watem_sedem.raster_clipping_by_bounding_box(
         input_file=r"C:\users\username\input_folder\land_cover_ESRI.tif",
         shape_file=r"C:\users\username\output_folder\region_buffer.tif",
         output_file=r"C:\users\username\output_folder\land_cover_region.tif",
@@ -116,7 +116,7 @@ is used to rescale the resolution of the reprojected and clipped raster.
 
 .. code-block:: python
     
-    watemsedem.raster_reproject_clipping_rescaling(
+    watem_sedem.raster_reproject_clipping_rescaling(
         input_file=r"C:\users\username\output_folder\land_cover_region.tif",
         resampling_method='nearest',
         shape_file=r"C:\users\username\output_folder\region.shp",
@@ -135,14 +135,14 @@ and :meth:`OptiDamTool.WatemSedem.land_management_factor` for more details.
 .. code-block:: python
     
     # land cover raster 
-    watemsedem.land_cover_esri(
+    watem_sedem.land_cover_esri(
         lc_file=r"C:\users\username\output_folder\land_cover_unprocessed.tif",
         stream_file=r"C:\users\username\output_folder\stream_lines.shp",
         folder_path=r"C:\users\username\output_folder"
     )
     
     # land management factor
-    watemsedem.land_cover_esri(
+    watem_sedem.land_cover_esri(
         lc_file=r"C:\users\username\output_folder\land_cover_unprocessed.tif",
         stream_file=r"C:\users\username\output_folder\stream_lines.shp",
         output_file=r"C:\users\username\output_folder\RUSLE_C.tif"
@@ -158,7 +158,7 @@ the value of R to 1 where necessary. Refer to the method :meth:`OptiDamTool.Wate
 
 .. code-block:: python
     
-    watemsedem.rusle_kr(
+    watem_sedem.rusle_kr(
         k_file=r"C:\users\username\input_data\RUSLE_K.tif",
         r_file=r"C:\users\username\input_data\RUSLE_R.tif",
         region_file=r"C:\users\username\output_folder\region.tif",
@@ -175,7 +175,7 @@ which is one of the `two raster formats <https://watem-sedem.github.io/watem-sed
 
 .. code-block:: python
     
-    watemsedem.raster_driver_to_rst(
+    watem_sedem.raster_driver_to_rst(
         file_dict={'rusle_p': r"C:\users\username\output_folder\RUSEL_P_buffer.tif"},
         folder_path=r"C:\users\username\output_folder"
     )
@@ -303,7 +303,8 @@ When a dam becomes inactive, either because it has no remaining storage capacity
 its sediment trapping efficiency falls below a defined threshold, the simulation dynamically updates the system.
 This includes adjusting system connectivity, recalculating controlled drainage areas, and updating sediment inflows to other dams in the network.
 
-The simulation continues for a user-defined number of years or terminates early if all dams become inactive. The function returns a dictionary
+The simulation continues for a user-defined number of years or terminates early if either all dams become inactive or sediment release from the watershed
+exceeds the given threshold limit. The function returns a dictionary
 where each key corresponds to a DataFrame containing dam lifespan results, system-wide sedimentation statistics,
 individual dam performance metrics, and the simulation parameters used.
 
@@ -313,7 +314,7 @@ Each file is named after a dictionary key and contains the corresponding DataFra
 
 .. code-block:: python
     
-    network.storage_dynamics_detailed(
+    network.stodym_plus(
         stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
         storage_dict={
             21: 1500000,
@@ -329,15 +330,12 @@ Each file is named after a dictionary key and contains the corresponding DataFra
         folder_path=r"C:\users\username\output_folder"
     )
 
-    
-A lite version of this method is also available, providing a simplified simulation with limited output. For complete details, refer to the method
-:meth:`OptiDamTool.Network.storage_dynamics_lite`.
 
 To generate GeoJSON files of updated dam location points and their controlled drainage polygons when dams become inactive:
 
 .. code-block:: python
     
-    network.storage_dynamics_and_drainage_scenarios(
+    network.stodym_plus_with_drainage_scenarios(
         stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
         flwdir_file=r"C:\users\username\output_folder\flwdir.tif",
         storage_dict={
@@ -456,7 +454,7 @@ code:
 .. code-block:: python
 
     if __name__ == '__main__':
-        output = system_design.solution_sedimentation_management_by_ga(
+        output = system_design.sediment_control_by_fixed_dams(
             dam_number=5,
             storage_bounds=(1, 50),
             storage_multiplier=50000,
@@ -484,8 +482,7 @@ code:
             folder_path=r"C:\Users\username\output_folder",
             constraints={
                 'lb_lifespan': 10
-            },
-            solution_sorting='by_metric_euclidean'
+            }
         )
 
 
