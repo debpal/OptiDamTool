@@ -225,25 +225,8 @@ def test_error_systemdesign(
         'population_size': 10
     }
     seeds = 2
-    valid_modelconfig = [
-        'sediment_density',
-        'year_limit',
-        'trap_equation',
-        'trap_threshold',
-        'brown_d',
-        'trap_constant',
-        'release_threshold'
-    ]
-    valid_algorithms = ['NSGAII']
-    valid_algorithmargs = [
-        'population_size',
-        'generator',
-        'selector',
-        'variator',
-        'archive'
-    ]
-    valid_objectives = list(system_design.mapping_objective_direction.keys())
-    valid_constraints = list(system_design.mapping_constraint_operator.keys())
+    objs_dirs = system_design.mapping_objective_direction
+    constrs_ops = system_design.mapping_constraint_operator
 
     # Error: storage_bounds length greater than 2
     with pytest.raises(Exception) as exc_info:
@@ -324,17 +307,24 @@ def test_error_systemdesign(
 
     # Error: invalid stodym_config key type
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_kwargs_stodym_plus(
+        system_design._validate_stodym_kwargs(
             stodym_config={1: 5}
         )
     assert exc_info.value.args[0] == 'Key "1" in stodym_config must be a string, but got type "int"'
 
     # Error: invalid stodym_config key name
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_kwargs_stodym_plus(
+        system_design._validate_stodym_kwargs(
             stodym_config={'invalid_key': 5}
         )
-    assert exc_info.value.args[0] == f'Invalid variable "invalid_key" in stodym_config; valid names are {valid_modelconfig}'
+    assert 'Invalid key "invalid_key" in stodym_config' in exc_info.value.args[0]
+
+    # Error: required key in stodym_config
+    with pytest.raises(Exception) as exc_info:
+        system_design._validate_stodym_kwargs(
+            stodym_config={'year_limit': 5}
+        )
+    assert exc_info.value.args[0] == 'Required key "sediment_density" is missing from stodym_config'
 
     # Error: invalid genetic algorithm name
     with pytest.raises(Exception) as exc_info:
@@ -342,15 +332,15 @@ def test_error_systemdesign(
             algorithm_name='NSGA5',
             algorithm_config=algorithm_config
         )
-    assert exc_info.value.args[0] == f'Invalid genetic algorithm name "NSGA5"; valid names are {valid_algorithms}'
+    assert 'Invalid algorithm name "NSGA5"' in exc_info.value.args[0]
 
-    # Error: invalid key name in algorithm_config
+    # Error: invalid keyword in algorithm_config
     with pytest.raises(Exception) as exc_info:
         system_design._validate_algorithm_config(
             algorithm_name='NSGAII',
             algorithm_config={'invalid_key': 1}
         )
-    assert exc_info.value.args[0] == f'Invalid variable "invalid_key" in algorithm_config; valid names are {valid_algorithmargs}'
+    assert 'Invalid key "invalid_key" in algorithm_config' in exc_info.value.args[0]
 
     # Error: required key in algorithm_config
     with pytest.raises(Exception) as exc_info:
@@ -358,34 +348,40 @@ def test_error_systemdesign(
             algorithm_name='NSGAII',
             algorithm_config={'archive': []}
         )
-    assert exc_info.value.args[0] == 'Required key "population_size" is missing in algorithm_config'
+    assert exc_info.value.args[0] == 'Missing required key "population_size" in algorithm_config'
 
     # Error: invalid value type of required key in algorithm_config
     with pytest.raises(Exception) as exc_info:
         system_design._validate_algorithm_config(
-            algorithm_name='NSGAII',
+            algorithm_name='MOEAD',
             algorithm_config={'population_size': '10'}
         )
     assert exc_info.value.args[0] == 'Value for "population_size" must be an integer, but got type "str"'
 
-    # Error: required key in stodym_config
+    # Error: invalid epsilons value in algorithm_config
     with pytest.raises(Exception) as exc_info:
-        system_design._validate_kwargs_stodym_plus(
-            stodym_config={'year_limit': 5}
+        system_design._validate_algorithm_config(
+            algorithm_name='EpsNSGAII',
+            algorithm_config={
+                'population_size': 10,
+                'epsilons': 3
+            }
         )
-    assert exc_info.value.args[0] == 'Required key "sediment_density" is missing from stodym_config'
+    assert exc_info.value.args[0] == 'Value for "epsilons" must be between 0 and 1, but got "3"'
 
     # Error: invalid objective name
     with pytest.raises(Exception) as exc_info:
         system_design._validate_objectives(
-            objectives=['no_lifespan']
+            objectives=['no_lifespan'],
+            objs_dirs=objs_dirs
         )
-    assert exc_info.value.args[0] == f'Invalid objective "no_lifespan"; valid names are {valid_objectives}'
+    assert 'Invalid objective "no_lifespan"' in exc_info.value.args[0]
 
     # Error: empty objective list
     with pytest.raises(Exception) as exc_info:
         system_design._validate_objectives(
-            objectives=[]
+            objectives=[],
+            objs_dirs=objs_dirs
         )
     assert exc_info.value.args[0] == '"objectives" cannot be an empty list'
 
@@ -393,27 +389,31 @@ def test_error_systemdesign(
     with pytest.raises(Exception) as exc_info:
         duplicate_objectives = ['lifespan'] * 2
         system_design._validate_objectives(
-            objectives=duplicate_objectives
+            objectives=duplicate_objectives,
+            objs_dirs=objs_dirs
         )
     assert exc_info.value.args[0] == f'Duplicate names found in objective list: {duplicate_objectives}'
 
     # Error: empty constraint dictionary
     with pytest.raises(Exception) as exc_info:
         system_design._validate_constraints(
-            constraints={}
+            constraints={},
+            constrs_ops=constrs_ops
         )
     assert exc_info.value.args[0] == '"constraints" cannot be an empty dictionary'
 
     # Error: invalid contraint name
     with pytest.raises(Exception) as exc_info:
         system_design._validate_constraints(
-            constraints={'invalid_constraint': 1}
+            constraints={'invalid_constraint': 1},
+            constrs_ops=constrs_ops
         )
-    assert exc_info.value.args[0] == f'Invalid constraint "invalid_constraint"; valid names are {valid_constraints}'
+    assert 'Invalid constraint "invalid_constraint"' in exc_info.value.args[0]
 
     # Error: invalid constraint dictionary value type
     with pytest.raises(Exception) as exc_info:
         system_design._validate_constraints(
-            constraints={'lb_lifespan': '1'}
+            constraints={'lb_lifespan': '1'},
+            constrs_ops=constrs_ops
         )
     assert exc_info.value.args[0] == 'Value of key "lb_lifespan" in "constraints" must be numeric, but got type "str"'

@@ -66,33 +66,6 @@ def test_visual(
         assert os.path.exists(os.path.join(tmp_dir, 'dam_location_in_stream.png'))
         assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2
 
-        # Pass: plot of dam remaining storage
-        output = visual.dam_remaining_storage(
-            json_file=os.path.join(tmp_dir, 'dam_remaining_storage.json'),
-            figure_file=os.path.join(tmp_dir, 'dam_remaining_storage.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'dam_remaining_storage.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 3
-
-        # Pass: plot of dam sediment trapping
-        output = visual.dam_trapped_sediment(
-            json_file=os.path.join(tmp_dir, 'dam_trapped_sediment.json'),
-            figure_file=os.path.join(tmp_dir, 'dam_trapped_sediment.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'dam_trapped_sediment.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 4
-
-        # Pass: plot of dam trapping efficiency
-        output = visual.dam_trap_efficiency(
-            json_file=os.path.join(tmp_dir, 'dam_trap_efficiency.json'),
-            figure_file=os.path.join(tmp_dir, 'dam_trap_efficiency.png'),
-            gui_window=False
-        )
-        assert os.path.exists(os.path.join(tmp_dir, 'dam_trap_efficiency.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 5
-
         # Pass: plot of dam system statistics
         output = visual.system_statistics(
             json_file=os.path.join(tmp_dir, 'system_statistics.json'),
@@ -100,4 +73,13 @@ def test_visual(
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'system_statistics.png'))
-        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 6
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 3
+
+        # Pass: plot of dam remaining storage
+        output = visual.dam_individual_features(
+            json_file=os.path.join(tmp_dir, 'dam_remaining_storage.json'),
+            figure_file=os.path.join(tmp_dir, 'dam_remaining_storage.png'),
+            gui_window=False
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'dam_remaining_storage.png'))
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 4
