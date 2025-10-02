@@ -697,257 +697,18 @@ class Visual:
 
         return figure
 
-    def dam_remaining_storage(
+    def dam_individual_features(
         self,
         json_file: str,
         figure_file: str,
         fig_width: int | float = 10,
         fig_height: int | float = 5,
-        fig_title: str = 'Dam annual storage variations',
-        colormap_name: str = 'coolwarm',
-        dam_linewidth: int | float = 2,
-        xtick_gap: int = 10,
-        legend_cols: int = 1,
-        legend_fontsize: int = 12,
-        tick_fontsize: int = 12,
-        axis_fontsize: int = 15,
-        title_fontsize: int = 15,
-        gui_window: bool = True
-    ) -> matplotlib.figure.Figure:
-
-        '''
-        Generates a figure showing the annual remaining storage of each dam in the system at the beginning of the year.
-
-        Parameters
-        ----------
-        json_file : str
-            Path to the input ``dam_remaining_storage.json`` file, created by one of the methods:
-
-            - :meth:`OptiDamTool.Network.stodym_plus`
-            - :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`
-
-        figure_file : str
-            Path to the output figure file.
-
-        fig_width : float, optional
-            Width of the figure in inches. Default is 10.
-
-        fig_height : float, optional
-            Height of the figure in inches. Default is 5.
-
-        fig_title : str, optional
-            Title of the figure. Default is 'Dam annual storage variations'.
-
-        colormap_name : str, optional
-            Name of the `colormap <https://matplotlib.org/stable/users/explain/colors/colormaps.html>`_
-            used to generate colors for individual dams. Default is 'coolwarm'.
-
-        dam_linewidth : float, optional
-            Line width for plotting the storage variation of individual dams. Default is 2.
-
-        xtick_gap : int, optional
-            Gap between two x-axis ticks. Default is 10.
-
-        legend_cols : int, optional
-            Number of columns to arrange legend items. Default is 1.
-
-        legend_fontsize : int, optional
-            Font size of the legend. Default is 12.
-
-        tick_fontsize : int, optional
-            Font size of the tick labels on both axes. Default is 12.
-
-        axis_fontsize : int, optional
-            Font size of the axis labels. Default is 15.
-
-        title_fontsize : int, optional
-            Font size of the figure title. Default is 15.
-
-        gui_window : bool, optional
-            If True (default), open a graphical user interface window of the plot.
-
-        Returns
-        -------
-        Figure
-            A Figure object containing the annual storage variation of each individual dam in the system.
-        '''
-
-        # check static type of input variable origin
-        utility._validate_variable_origin_static_type(
-            vars_types=typing.get_type_hints(
-                obj=self.dam_remaining_storage
-            ),
-            vars_values=locals()
-        )
-
-        # check validity of figure file
-        self._validate_figure_ext(
-            figure_file=figure_file
-        )
-
-        # setting figure
-        figure = matplotlib.pyplot.figure(
-            figsize=(fig_width, fig_height)
-        )
-        figure_grid = figure.add_gridspec(
-            nrows=1,
-            ncols=5
-        )
-
-        # setting subplot for dam trapping efficiency
-        plot_data = figure.add_subplot(figure_grid[0, :4])
-
-        # setting subplot for legend
-        plot_legend = figure.add_subplot(figure_grid[0, 4])
-
-        # DataFrame of dam remaining storage
-        df = pandas.read_json(
-            path_or_buf=json_file,
-            orient='records'
-        )
-
-        # sort dam columns
-        dam_cols = sorted(
-            [col for col in df.columns if col != 'start_year'],
-            key=int
-        )
-
-        # set colors
-        colormap = matplotlib.colormaps.get_cmap(
-            cmap=colormap_name
-        )
-        color_dict = {
-            dam_cols[i]: colormap(i / len(dam_cols)) for i in range(len(dam_cols))
-        }
-
-        # plot remaining storage percentage of dams
-        legend_handles = []
-        for dam in dam_cols:
-            dam_line2d = plot_data.plot(
-                df['start_year'], df[dam],
-                linestyle='-',
-                linewidth=dam_linewidth,
-                color=color_dict[dam]
-            )
-            legend_handles.append(dam_line2d[0])
-
-        # plot legend
-        plot_legend.legend(
-            handles=legend_handles,
-            labels=dam_cols,
-            loc='center',
-            fontsize=legend_fontsize,
-            ncols=legend_cols,
-            frameon=False
-        )
-        plot_legend.axis('off')
-
-        # x-axis customization
-        year_max = df['start_year'].max()
-        xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap
-        plot_data.set_xlim(
-            left=0,
-            right=xaxis_max
-        )
-        xticks = range(0, xaxis_max + 1, xtick_gap)
-        plot_data.set_xticks(
-            ticks=xticks
-        )
-        plot_data.set_xticklabels(
-            labels=[str(xt) for xt in xticks],
-            fontsize=12
-        )
-        plot_data.tick_params(
-            axis='x',
-            which='both',
-            direction='in',
-            length=6,
-            width=1,
-            top=True,
-            bottom=True,
-            labeltop=False,
-            labelbottom=True
-        )
-        plot_data.grid(
-            visible=True,
-            which='major',
-            axis='x',
-            color='gray',
-            linestyle='--',
-            linewidth=0.3
-        )
-        plot_data.set_xlabel(
-            xlabel='Year',
-            fontsize=axis_fontsize
-        )
-
-        # y-axis customization
-        plot_data.set_ylim(
-            bottom=0,
-            top=100
-        )
-        yticks = range(0, 100 + 1, 10)
-        plot_data.set_yticks(
-            ticks=yticks
-        )
-        plot_data.set_yticklabels(
-            labels=[str(yt) for yt in yticks],
-            fontsize=tick_fontsize
-        )
-        plot_data.tick_params(
-            axis='y',
-            which='both',
-            direction='in',
-            length=6,
-            width=1,
-            left=True,
-            right=True,
-            labelleft=True,
-            labelright=False
-        )
-        plot_data.grid(
-            visible=True,
-            which='major',
-            axis='y',
-            color='gray',
-            linestyle='--',
-            linewidth=0.3
-        )
-        plot_data.set_ylabel(
-            ylabel='Percentage (%)',
-            fontsize=axis_fontsize
-        )
-
-        # figure title
-        figure.suptitle(
-            fig_title,
-            fontsize=title_fontsize
-        )
-
-        # saving figure
-        figure.tight_layout()
-        figure.savefig(
-            fname=figure_file,
-            bbox_inches='tight'
-        )
-
-        # figure display
-        matplotlib.pyplot.show() if gui_window else None
-        matplotlib.pyplot.close(figure)
-
-        return figure
-
-    def dam_trapped_sediment(
-        self,
-        json_file: str,
-        figure_file: str,
-        fig_width: int | float = 10,
-        fig_height: int | float = 5,
-        fig_title: str = 'Dam annual sediment trapping',
+        fig_title: str = '',
         colormap_name: str = 'coolwarm',
         dam_linewidth: int | float = 2,
         xtick_gap: int = 10,
         ytick_gap: int | float = 10,
+        ytop_offset: int | float = 0,
         ybottom_offset: int | float = 0,
         legend_cols: int = 1,
         legend_fontsize: int = 12,
@@ -958,16 +719,28 @@ class Visual:
     ) -> matplotlib.figure.Figure:
 
         '''
-        Generates a figure showing the annual sediment trapping percentage by each dam in the system,
-        relative to the total sediment input across all stream segments during the year.
+        Generate a figure illustrating the annual variability of key features for each dam in the system.
+        The input data are produced by the methods :meth:`OptiDamTool.Network.stodym_plus` and
+        :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`.
+
+        - ``dam_drainage_area.json``
+            Percentage of the controlled drainage area for each dam, relative to the total stream drainage area,
+            evaluated at the start of the simulation year.
+
+        - ``dam_remaining_storage.json``
+            Remaining storage capacity as a percentage of the dam’s initial storage, evaluated at the start of the simulation year.
+
+        - ``dam_trap_efficiency.json``
+            Trap efficiency expressed as a percentage, evaluated at the start of the simulation year.
+
+        - ``dam_trapped_sediment.json``
+            Percentage of sediment trapped by the dam, relative to the total sediment input across all stream segments,
+            evaluated at the end of the simulation year.
 
         Parameters
         ----------
         json_file : str
-            Path to the input ``dam_trapped_sediment.json`` file, created by one of the methods:
-
-            - :meth:`OptiDamTool.Network.stodym_plus`
-            - :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`
+            Path to the JSON file containing the dam feature data.
 
         figure_file : str
             Path to the output figure file.
@@ -993,6 +766,10 @@ class Visual:
 
         ytick_gap : float, optional
             Gap between two y-axis ticks. Default is 10.
+
+        ytop_offset : float, optional
+            Positive offset to increase the upper y-axis limit above 100, improving visibility
+            when plot values are close to 100. Default is 0.
 
         ybottom_offset : float, optional
             Negative offset to decrease the lower y-axis limit below 0, improving visibility
@@ -1025,7 +802,7 @@ class Visual:
         # check static type of input variable origin
         utility._validate_variable_origin_static_type(
             vars_types=typing.get_type_hints(
-                obj=self.dam_trapped_sediment
+                obj=self.dam_individual_features
             ),
             vars_values=locals()
         )
@@ -1044,16 +821,21 @@ class Visual:
             ncols=5
         )
 
-        # setting subplot for dam trapping efficiency
+        # setting subplot
         plot_data = figure.add_subplot(figure_grid[0, :4])
 
         # setting subplot for legend
         plot_legend = figure.add_subplot(figure_grid[0, 4])
 
-        # DataFrame of sediment trapped by dams
+        # DataFrame
         df = pandas.read_json(
             path_or_buf=json_file,
             orient='records'
+        )
+
+        # remove values that are not required
+        df = df.where(
+            cond=(df >= 0) & (df <= 100)
         )
 
         # sort dam columns
@@ -1070,7 +852,7 @@ class Visual:
             dam_cols[i]: colormap(i / len(dam_cols)) for i in range(len(dam_cols))
         }
 
-        # plot sediment trapped by dams
+        # plot dam features
         legend_handles = []
         for dam in dam_cols:
             dam_line2d = plot_data.plot(
@@ -1132,11 +914,12 @@ class Visual:
         )
 
         # y-axis customization
-        trap_max = df[dam_cols].max().max()
-        yaxis_max = (int(trap_max / ytick_gap) + 2) * ytick_gap
+        df_max = df[dam_cols].max().max()
+        yaxis_ub = (int(df_max / ytick_gap) + 1) * ytick_gap
+        yaxis_max = yaxis_ub if yaxis_ub < 100 else 100
         plot_data.set_ylim(
             bottom=0 + ybottom_offset,
-            top=yaxis_max
+            top=yaxis_max + ytop_offset
         )
         yticks = numpy.arange(0, yaxis_max + 0.01, ytick_gap, dtype=type(ytick_gap))
         plot_data.set_yticks(
@@ -1167,253 +950,6 @@ class Visual:
         )
         plot_data.set_ylabel(
             ylabel='Percentage (%)',
-            fontsize=axis_fontsize
-        )
-
-        # figure title
-        figure.suptitle(
-            fig_title,
-            fontsize=title_fontsize
-        )
-
-        # saving figure
-        figure.tight_layout()
-        figure.savefig(
-            fname=figure_file,
-            bbox_inches='tight'
-        )
-
-        # figure display
-        matplotlib.pyplot.show() if gui_window else None
-        matplotlib.pyplot.close(figure)
-
-        return figure
-
-    def dam_trap_efficiency(
-        self,
-        json_file: str,
-        figure_file: str,
-        fig_width: int | float = 10,
-        fig_height: int | float = 5,
-        fig_title: str = 'Dam annual sediment trapping efficiency',
-        colormap_name: str = 'coolwarm',
-        dam_linewidth: int | float = 2,
-        xtick_gap: int = 10,
-        legend_cols: int = 1,
-        legend_fontsize: int = 12,
-        tick_fontsize: int = 12,
-        axis_fontsize: int = 15,
-        title_fontsize: int = 15,
-        gui_window: bool = True
-    ) -> matplotlib.figure.Figure:
-
-        '''
-        Generates a figure showing the annual trapping efficiency of each dam in the system
-        at the beginning of the year. The values range from 0 to 1, indicating that the amount of sediment trapped
-        by a dam equals the product of its sediment inflow and trap efficiency during the year.
-
-        Parameters
-        ----------
-        json_file : str
-            Path to the input ``dam_trap_efficiency.json`` file, created by one of the methods:
-
-            - :meth:`OptiDamTool.Network.stodym_plus`
-            - :meth:`OptiDamTool.Network.stodym_plus_with_drainage_scenarios`
-
-        figure_file : str
-            Path to the output figure file.
-
-        fig_width : float, optional
-            Width of the figure in inches. Default is 10.
-
-        fig_height : float, optional
-            Height of the figure in inches. Default is 5.
-
-        fig_title : str, optional
-            Title of the figure. Default is 'Dam annual sediment trapping efficiency'.
-
-        colormap_name : str, optional
-            Name of the `colormap <https://matplotlib.org/stable/users/explain/colors/colormaps.html>`_
-            used to generate colors for individual dams. Default is 'coolwarm'.
-
-        dam_linewidth : float, optional
-            Line width for plotting the storage variation of individual dams. Default is 2.
-
-        xtick_gap : int, optional
-            Gap between two x-axis ticks. Default is 10.
-
-        legend_cols : int, optional
-            Number of columns to arrange legend items. Default is 1.
-
-        legend_fontsize : int, optional
-            Font size of the legend. Default is 12.
-
-        tick_fontsize : int, optional
-            Font size of the tick labels on both axes. Default is 12.
-
-        axis_fontsize : int, optional
-            Font size of the axis labels. Default is 15.
-
-        title_fontsize : int, optional
-            Font size of the figure title. Default is 15.
-
-        gui_window : bool, optional
-            If True (default), open a graphical user interface window of the plot.
-
-        Returns
-        -------
-        Figure
-            A Figure object containing the annual trapping efficiency of each dam in the system.
-        '''
-
-        # check static type of input variable origin
-        utility._validate_variable_origin_static_type(
-            vars_types=typing.get_type_hints(
-                obj=self.dam_trap_efficiency
-            ),
-            vars_values=locals()
-        )
-
-        # check validity of figure file
-        self._validate_figure_ext(
-            figure_file=figure_file
-        )
-
-        # setting figure
-        figure = matplotlib.pyplot.figure(
-            figsize=(fig_width, fig_height)
-        )
-        figure_grid = figure.add_gridspec(
-            nrows=1,
-            ncols=5
-        )
-
-        # setting subplot for dam trapping efficiency
-        plot_data = figure.add_subplot(figure_grid[0, :4])
-
-        # setting subplot for legend
-        plot_legend = figure.add_subplot(figure_grid[0, 4])
-
-        # DataFrame of dam trapping efficiency
-        df = pandas.read_json(
-            path_or_buf=json_file,
-            orient='records'
-        )
-
-        # removing values greater than 1, if any, from the DataFrame
-        df.iloc[:, 1:] = df.iloc[:, 1:].where(
-            cond=df.iloc[:, 1:] <= 1
-        )
-
-        # sort dam columns
-        dam_cols = sorted(
-            [col for col in df.columns if col != 'start_year'],
-            key=int
-        )
-
-        # set colors
-        colormap = matplotlib.colormaps.get_cmap(
-            cmap=colormap_name
-        )
-        color_dict = {
-            dam_cols[i]: colormap(i / len(dam_cols)) for i in range(len(dam_cols))
-        }
-
-        # plot dam trapping efficiency
-        legend_handles = []
-        for dam in dam_cols:
-            dam_line2d = plot_data.plot(
-                df['start_year'], df[dam],
-                linestyle='-',
-                linewidth=dam_linewidth,
-                color=color_dict[dam]
-            )
-            legend_handles.append(dam_line2d[0])
-
-        # plot legend
-        plot_legend.legend(
-            handles=legend_handles,
-            labels=dam_cols,
-            loc='center',
-            fontsize=legend_fontsize,
-            ncols=legend_cols,
-            frameon=False
-        )
-        plot_legend.axis('off')
-
-        # x-axis customization
-        year_max = df['start_year'].max()
-        xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap
-        plot_data.set_xlim(
-            left=0,
-            right=xaxis_max
-        )
-        xticks = range(0, xaxis_max + 1, xtick_gap)
-        plot_data.set_xticks(
-            ticks=xticks
-        )
-        plot_data.set_xticklabels(
-            labels=[str(xt) for xt in xticks],
-            fontsize=12
-        )
-        plot_data.tick_params(
-            axis='x',
-            which='both',
-            direction='in',
-            length=6,
-            width=1,
-            top=True,
-            bottom=True,
-            labeltop=False,
-            labelbottom=True
-        )
-        plot_data.grid(
-            visible=True,
-            which='major',
-            axis='x',
-            color='gray',
-            linestyle='--',
-            linewidth=0.3
-        )
-        plot_data.set_xlabel(
-            xlabel='Year',
-            fontsize=axis_fontsize
-        )
-
-        # y-axis customization
-        plot_data.set_ylim(
-            bottom=0,
-            top=1
-        )
-        yticks = [
-            i * 0.1 for i in range(0, 10 + 1, 1)
-        ]
-        plot_data.set_yticks(
-            ticks=yticks
-        )
-        plot_data.set_yticklabels(
-            labels=[f'{yt:.1f}' for yt in yticks],
-            fontsize=tick_fontsize
-        )
-        plot_data.tick_params(
-            axis='y',
-            which='both',
-            direction='in',
-            length=6,
-            width=1,
-            left=True,
-            right=True,
-            labelleft=True,
-            labelright=False
-        )
-        plot_data.grid(
-            visible=True,
-            which='major', axis='y',
-            color='gray',
-            linestyle='--', linewidth=0.3
-        )
-        plot_data.set_ylabel(
-            ylabel='Fraction',
             fontsize=axis_fontsize
         )
 
