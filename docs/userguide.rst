@@ -370,41 +370,10 @@ To create a figure showing dam locations along the stream path, use the followin
         figure_file=r"C:\users\username\output_folder\dam_location_in_stream.png"
     )
     
+.. image:: _static/dam_location_in_stream.png
+    :scale: 75%
+    :align: center
     
-To generate a figure showing the annual trapping efficiency of each dam in the system at the beginning of the year, use the following code:
-
-.. code-block:: python
-
-    visual.dam_remaining_storage(
-        json_file=r"C:\users\username\output_folder\dam_remaining_storage.json",
-        figure_file=r"C:\users\username\output_folder\dam_remaining_storage.png",
-        xtick_gap=1
-    )
-    
-To generate a figure showing the annual remaining storage of each dam in the system at the beginning of the year, use the following code:
-
-.. code-block:: python
-
-    visual.dam_trap_efficiency(
-        json_file=r"C:\users\username\output_folder\dam_trap_efficiency.json",
-        figure_file=r"C:\users\username\output_folder\dam_trap_efficiency.png",
-        xtick_gap=1
-    )
-    
-To generate a figure showing the annual sediment trapping percentage by each dam in the system,
-relative to the total sediment input across all stream segments during the year, use the following code:
-
-.. code-block:: python
-
-    visual.dam_trapped_sediment(
-        json_file=r"C:\users\username\output_folder\dam_trapped_sediment.json",
-        figure_file=r"C:\users\username\output_folder\dam_trapped_sediment.png",
-        xtick_gap=1,
-        ytick_gap=4,
-        ybottom_offset=-1
-    )
-
-
 To generate a figure showing dam system-level statistics, including controlled drainage area, remaining storage, sediment trapped, and sediment released, use the following code:
 
 .. code-block:: python
@@ -415,14 +384,40 @@ To generate a figure showing dam system-level statistics, including controlled d
         ytop_offset=5,
         xtick_gap=1
     )
-
-
-The following figures are the outputs produced by the above code.
-
-
-.. image:: _static/dam_location_in_stream.png
+    
+.. image:: _static/system_statistics.png
     :scale: 75%
     :align: center
+    
+    
+To generate figures illustrating the annual variability of key features for each dam in the system:
+
+.. code-block:: python
+    
+    # dam remaining storage
+    visual.dam_individual_features(
+        json_file=r"C:\users\username\output_folder\dam_remaining_storage.json",
+        figure_file=r"C:\users\username\output_folder\dam_remaining_storage.png"
+    )
+    
+    # dam sediment trapping efficiency
+    visual.dam_individual_features(
+        json_file=r"C:\users\username\output_folder\dam_trap_efficiency.json",
+        figure_file=r"C:\users\username\output_folder\dam_trap_efficiency.png"
+    )
+    
+    # sediment trapped by dams
+    visual.dam_individual_features(
+        json_file=r"C:\users\username\output_folder\dam_trapped_sediment.json",
+        figure_file=r"C:\users\username\output_folder\dam_trapped_sediment.png"
+    )
+    
+    # dam controlled drainage area
+    visual.dam_individual_features(
+        json_file=r"C:\users\username\output_folder\dam_drainage_area.json",
+        figure_file=r"C:\users\username\output_folder\dam_drainage_area.png"
+    )
+
     
 .. image:: _static/dam_remaining_storage.png
     :scale: 75%
@@ -435,8 +430,8 @@ The following figures are the outputs produced by the above code.
 .. image:: _static/dam_trapped_sediment.png
     :scale: 75%
     :align: center
-
-.. image:: _static/system_statistics.png
+    
+.. image:: _static/dam_drainage_area.png
     :scale: 75%
     :align: center
 
@@ -459,7 +454,7 @@ code:
             storage_bounds=(1, 50),
             storage_multiplier=50000,
             stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
-            model_config={
+            stodym_config={
                 'sediment_density': 1300,
                 'year_limit': 100,
                 'trap_threshold': 0.05,

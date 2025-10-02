@@ -68,7 +68,11 @@ Provides methods for visualizing simulation outputs.
 
 * Produces a figure showing sediment inflow percentages to stream segments, relative to the total sediment input across all stream segments.
 * Creates a figure showing dam locations along the stream path.
-* Displays figures showing annual remaining storage and trapping efficiency of each dam at the beginning of the year.
-* Generates a figure showing the annual sediment trapping percentage by each dam in the system, relative to the total sediment input across all stream segments during the year.
 * Produces a figure showing dam system-level statistics, including controlled drainage area, remaining storage, sediment trapped, and sediment released.
+* Displays figures illustrating the annual variability of key features for each dam in the system:
+
+    - **Controlled drainage area**: Percentage of the drainage area managed by each dam, relative to the total stream drainage area, evaluated at the start of the simulation year.  
+    - **Remaining storage**: Percentage of storage capacity remaining relative to the dam’s initial storage, evaluated at the start of the simulation year.  
+    - **Trap efficiency**: Efficiency of sediment trapping expressed as a percentage, evaluated at the start of the simulation year.  
+    - **Trapped sediment**: Percentage of sediment retained by the dam, relative to the total sediment input across all stream segments, evaluated at the end of the simulation year.  
 
