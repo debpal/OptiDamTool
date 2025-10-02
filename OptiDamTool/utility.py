@@ -79,3 +79,19 @@ def _validate_folder_path(
         )
 
     return None
+
+
+def _validate_empty_folder(
+    folder_path: str,
+) -> None:
+
+    '''
+    Validate that the given folder path points to an empty directory.
+    '''
+
+    if len(os.listdir(folder_path)) > 0:
+        raise ValueError(
+            'Specified folder_path must point to an empty directory'
+        )
+
+    return None

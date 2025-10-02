@@ -566,7 +566,7 @@ class Network:
           at the beginning of the simulation year.
 
         - **dam_trap_efficiency**: A DataFrame with columns ``start_year`` and dam identifiers.
-          The cell values represent the annual trap efficiency values at the beginning of the simulation year.
+          The cell values represent the annual trap efficiency percentages at the beginning of the simulation year.
 
         - **dam_trapped_sediment**: A DataFrame with columns ``start_year`` and dam identifiers.
           The cell values represent the annual sediment trapping percentages, relative to the total sediment input
@@ -836,7 +836,7 @@ class Network:
             'system_statistics': system_df,
             'dam_drainage_area': drainage_df,
             'dam_remaining_storage': storage_df,
-            'dam_trap_efficiency': te_df,
+            'dam_trap_efficiency': 100 * te_df,
             'dam_trapped_sediment': sedtrap_df
         }
         unchanged_keys = [

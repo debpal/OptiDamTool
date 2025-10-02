@@ -97,7 +97,7 @@ class SystemDesign:
 
         return stream_ids
 
-    def _validate_kwargs_stodym_plus(
+    def _validate_stodym_kwargs(
         self,
         stodym_config: dict[str, typing.Any]
     ) -> dict[str, typing.Any]:
@@ -125,7 +125,7 @@ class SystemDesign:
                 )
             if m_key not in vars_valid:
                 raise NameError(
-                    f'Invalid variable "{m_key}" in stodym_config; valid names are {vars_valid}'
+                    f'Invalid key "{m_key}" in stodym_config; valid names are {vars_valid}'
                 )
 
         # check required keys
@@ -154,66 +154,102 @@ class SystemDesign:
         Validate the genetic algorithm configuration.
         '''
 
-        # check alorithm_name is a valid genetic algorithm name
-        algorithm_supported = [
-            'NSGAII'
-        ]
-        if algorithm_name not in algorithm_supported:
+        # dictionary mapping between required key and algorithms
+        alg_rk = {
+            'population_size': [
+                'EpsNSGAII',
+                'EpsMOEA',
+                'IBEA',
+                'MOEAD',
+                'NSGAII',
+                'PESA2',
+                'SPEA2'
+            ],
+            'epsilons': [
+                'EpsMOEA',
+                'EpsNSGAII'
+            ],
+            'divisions_outer': [
+                'NSGAIII'
+            ]
+
+        }
+
+        # supported algorithms
+        alg_support = sorted(set(j for i in alg_rk.values() for j in i))
+
+        # check valid algorithm_name
+        if algorithm_name not in alg_support:
             raise NameError(
-                f'Invalid genetic algorithm name "{algorithm_name}"; valid names are {algorithm_supported}'
+                f'Invalid algorithm name "{algorithm_name}"; valid names are {alg_support}'
             )
 
         # list of valid input arguments name
-        algorithm_args = []
+        alg_args = []
         args_types = inspect.signature(getattr(platypus, algorithm_name))
         for param_name in args_types.parameters.keys():
             if param_name in ['problem', 'kwargs']:
                 continue
             else:
-                algorithm_args.append(param_name)
+                alg_args.append(param_name)
 
-        # check keyword validity in algorithm_config
+        # add special argument if any
+        special_args = {
+            'MOEAD': ['population_size']
+        }
+        if algorithm_name in special_args:
+            alg_args.extend(special_args[algorithm_name])
+
+        # check input keyword in algorithm_config
         for a_arg in algorithm_config:
-            if a_arg not in algorithm_args:
+            if a_arg not in alg_args:
                 raise NameError(
-                    f'Invalid variable "{a_arg}" in algorithm_config; valid names are {algorithm_args}'
+                    f'Invalid key "{a_arg}" in algorithm_config; valid names are {alg_args}'
                 )
 
-        # ckeck other requirement in algorithm_config
-        if algorithm_name == 'NSGAII':
-            # check required key in algorithm_config
-            req_key = 'population_size'
-            if req_key not in algorithm_config:
-                raise KeyError(
-                    f'Required key "{req_key}" is missing in algorithm_config'
-                )
-            if not isinstance(algorithm_config[req_key], int):
-                raise TypeError(
-                    f'Value for "{req_key}" must be an integer, but got type "{type(algorithm_config[req_key]).__name__}"'
-                )
-            # default mixed variator will be added in algorithm_kwargs
-            if 'variator' not in algorithm_config:
-                default_variator = platypus.CompoundOperator(
-                    platypus.SSX(),
-                    platypus.Replace(),
-                    platypus.HUX(),
-                    platypus.BitFlip(),
-                )
-                algorithm_config['variator'] = default_variator
+        # check required key in algorithm_config
+        for req_key in alg_rk:
+            if algorithm_name in alg_rk[req_key]:
+                if req_key not in algorithm_config:
+                    raise KeyError(
+                        f'Missing required key "{req_key}" in algorithm_config'
+                    )
+
+        # check required_key value in algorithm_config
+        for req_key in alg_rk:
+            if req_key in algorithm_config:
+                if req_key != 'epsilons':
+                    if not isinstance(algorithm_config[req_key], int):
+                        raise TypeError(
+                            f'Value for "{req_key}" must be an integer, but got type "{type(algorithm_config[req_key]).__name__}"'
+                        )
+                else:
+                    if not 0 < algorithm_config[req_key] < 1:
+                        raise ValueError(
+                            f'Value for "{req_key}" must be between 0 and 1, but got "{algorithm_config[req_key]}"'
+                        )
+
+        # default mixed variator will be added in algorithm_kwargs
+        if 'variator' not in algorithm_config:
+            default_variator = platypus.CompoundOperator(
+                platypus.SSX(),
+                platypus.Replace(),
+                platypus.HUX(),
+                platypus.BitFlip(),
+            )
+            algorithm_config['variator'] = default_variator
 
         return algorithm_config
 
     def _validate_objectives(
         self,
-        objectives: list[str]
+        objectives: list[str],
+        objs_dirs: dict[str, str]
     ) -> list[str]:
 
         '''
         Validate the list of objectives.
         '''
-
-        # mapping between actual objectives and their directions
-        objs_dirs = self.mapping_objective_direction
 
         # check validity of objective names
         for obj in objectives:
@@ -238,15 +274,13 @@ class SystemDesign:
 
     def _validate_constraints(
         self,
-        constraints: dict[str, float]
+        constraints: dict[str, float],
+        constrs_ops: dict[str, str]
     ) -> dict[str, float]:
 
         '''
         Validate the constratint dictionary.
         '''
-
-        # mapping between actual constraints and ther operators
-        constrs_ops = self.mapping_constraint_operator
 
         # check non-empty dictionary
         if len(constraints) == 0:
@@ -276,7 +310,10 @@ class SystemDesign:
         objectives: list[str],
         constraints: dict[str, float],
         stream_file: str,
-        stodym_config: dict[str, typing.Any]
+        stodym_config: dict[str, typing.Any],
+        objs_bounds: dict[str, list[float]],
+        objs_dirs: dict[str, str],
+        constrs_ops: dict[str, str]
     ) -> pandas.DataFrame:
 
         '''
@@ -284,34 +321,14 @@ class SystemDesign:
         obtained from the method :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
         '''
 
-        # objectives lower and upper bounds
-        objs_lb = []
-        objs_ub = []
-        for obj in objectives:
-            if obj == 'lifespan':
-                lb_val = dam_number * numpy.log(self.lifespan_epsilon)
-                ub_val = dam_number * numpy.log(stodym_config['year_limit'])
-            if obj == 'lifespan_std':
-                lb_val = 0
-                ub_val = stodym_config['year_limit'] / 2
-            if obj == 'storage_sum':
-                lb_val = dam_number * storage_vars.min_value * storage_multiplier
-                ub_val = dam_number * storage_vars.max_value * storage_multiplier
-            if obj == 'storage_variability':
-                lb_val = 0
-                ub_val = 0.5
-            if obj in ['sediment_trapped_initial', 'sediment_released_median']:
-                lb_val = 0
-                ub_val = 100
-            objs_lb.append(lb_val)
-            objs_ub.append(ub_val)
-
-        # normalize objectives
-        platypus.normalize(
-            solutions=solutions,
-            minimum=objs_lb,
-            maximum=objs_ub
-        )
+        # objective lower bounds
+        objs_lb = [
+            objs_bounds[obj][0] for obj in objectives
+        ]
+        # objective upper bounds
+        objs_ub = [
+            objs_bounds[obj][1] for obj in objectives
+        ]
 
         # dam columns
         col_dam = [
@@ -329,13 +346,11 @@ class SystemDesign:
         ]
 
         # objective columns
-        objs_dirs = self.mapping_objective_direction
         col_objective = [
             f'{obj}({objs_dirs[obj]})' for obj in objectives
         ]
 
         # constraint columns
-        constrs_ops = self.mapping_constraint_operator
         col_constraint = [
             f'{constr}{constrs_ops[constr]}{val}' for constr, val in constraints.items()
         ]
@@ -353,6 +368,7 @@ class SystemDesign:
             columns=df_columns
         )
         for idx, sol in enumerate(solutions):
+            # dam locations and storage volumes
             dam_ids = sol.variables[0]
             dam_storage = [
                 storage_vars.decode(i) * storage_multiplier for i in sol.variables[1:]
@@ -362,16 +378,25 @@ class SystemDesign:
             )
             df.loc[idx, col_dam] = [i[0] for i in dam_sort]
             df.loc[idx, col_storage] = [i[1] for i in dam_sort]
-            # storage dynamics dictionary
+            # storage dynamics simulation
             sol_output = Network().stodym_plus(
                 stream_file=stream_file,
                 storage_dict=dict(dam_sort),
                 **stodym_config
             )
+            # dam lifespan
             df.loc[idx, col_lifespan] = sol_output['dam_lifespan']['life_year'].tolist()
-            df.loc[idx, col_objective] = sol.objectives
+            # objectives
+            objs_normalize = [
+                val if objs_dirs[obj] == 'min' else - val for val, obj in zip(sol.objectives, objectives)
+            ]
+            objs_actual = [
+                obj * (objs_ub[i] - objs_lb[i]) + objs_lb[i] for i, obj in enumerate(objs_normalize)
+            ]
+            df.loc[idx, col_objective] = objs_actual
+            df.loc[idx, df_columns[-1]] = objs_normalize
+            # constraints
             df.loc[idx, col_constraint] = sol.constraints
-            df.loc[idx, df_columns[-1]] = sol.normalized_objectives
 
         # remove duplicate rows from DataFrame
         df = df.drop_duplicates(
@@ -484,54 +509,58 @@ class SystemDesign:
 
         return std_dist
 
-    def scenario_sediment_control(
+    def _objective_bounds(
+        self,
+        dam_number: int,
+        storage_vars: platypus.Integer,
+        storage_multiplier: float,
+        objectives: list[str],
+        stodym_config: dict[str, typing.Any]
+    ) -> dict[str, list[float]]:
+
+        '''
+        Construct a dictionary where each key is an objective name from
+        :attr:`OptiDamTool.SystemDesign.mapping_objective_direction`, and each value
+        is a two-element list representing the lower and upper bounds.
+        '''
+
+        # objectives lower and upper bounds
+        objs_bounds = {}
+        for obj in objectives:
+            if obj == 'lifespan':
+                lb_val = dam_number * numpy.log(self.lifespan_epsilon)
+                ub_val = dam_number * numpy.log(stodym_config['year_limit'])
+            if obj == 'lifespan_std':
+                lb_val = 0
+                ub_val = stodym_config['year_limit'] / 2
+            if obj == 'storage_sum':
+                lb_val = dam_number * storage_vars.min_value * storage_multiplier
+                ub_val = dam_number * storage_vars.max_value * storage_multiplier
+            if obj == 'storage_variability':
+                lb_val = 0
+                ub_val = 0.5
+            if obj in ['sediment_trapped_initial', 'sediment_released_median']:
+                lb_val = 0
+                ub_val = 100
+            objs_bounds[obj] = [lb_val, ub_val]
+
+        return objs_bounds
+
+    def _scenario_sediment_control(
         self,
         variables: list[list[int] | int],
         storage_multiplier: float,
         stream_file: str,
         stodym_config: dict[str, typing.Any],
         objectives: list[str],
+        objs_bounds: dict[str, list[float]],
+        objs_dirs: dict[str, str],
         constraints: dict[str, float]
     ) -> tuple[list[float], list[float]]:
 
         '''
         Generate objective and constraint values for the scenario produced by
         :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
-
-        Parameters
-        ----------
-        variables : list
-            List where the first element is a list of integers representing selected stream identifiers for dam locations,
-            followed by individual integers corresponding to the selected storage values for each dam within the storage bounds.
-
-        storage_multiplier : float
-            Multiplier applied to the selected storage values to obtain the actual storage volumes in cubic meters.
-
-        stream_file : str
-            Path to the input stream GeoJSON file, generated by
-            :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_geojson`.
-
-        stodym_config : dict
-            Dictionary specifying input variable configurations for :meth:`OptiDamTool.Network.stodym_plus`.
-            Each key corresponds to the name of an input variable, and the value is the parameter supplied to the method.
-            The required keys are ``sediment_density`` and ``year_limit``.
-
-        objectives : list
-            List of valid objective names, which can be obtained from the keys of the output dictionary
-            defined in the attribute :attr:`OptiDamTool.SystemDesign.mapping_objective_direction`.
-
-        constraints : dict
-            Dictionary containing valid constraint names as keys and their corresponding values.
-            The valid names can be obtained from the keys of the output dictionary defined in the
-            attribute :attr:`OptiDamTool.SystemDesign.mapping_constraint_operator`.
-
-        Returns
-        -------
-        objectives : list
-            List containing the objective values.
-
-        constraints : list
-            List containing the constraint values.
         '''
 
         # selected list of dams
@@ -543,24 +572,24 @@ class SystemDesign:
             k: v * storage_multiplier for k, v in zip(selected_dam, selected_storage)
         }
 
-        # storage dynamics dictionary
-        model_output = Network().stodym_plus(
+        # siulation output from selected dam and storage volumes
+        sim_vars = Network().stodym_plus(
             stream_file=stream_file,
-            storage_dict=storage_dict,
+            storage_dict=storage_dict.copy(),
             **stodym_config
         )
 
-        # compute objective values
-        model_objectives = typing.cast(list[float], [])
+        # compute objective
+        sim_objs = typing.cast(list[float], [])
         for obj in objectives:
             if obj == 'lifespan':
                 # dam lifespan with small positive value s a lower bound to penalize low lifespans
-                dam_lifespan = model_output['dam_lifespan']['life_year'].clip(
+                dam_lifespan = sim_vars['dam_lifespan']['life_year'].clip(
                     lower=self.lifespan_epsilon
                 )
                 obj_val = sum(numpy.log(dam_lifespan))
             if obj == 'lifespan_std':
-                lifespan_std = model_output['dam_lifespan']['life_year'].std(
+                lifespan_std = sim_vars['dam_lifespan']['life_year'].std(
                     ddof=0
                 )
                 obj_val = float(lifespan_std)
@@ -568,25 +597,33 @@ class SystemDesign:
                 obj_val = sum(storage_dict.values())
             if obj == 'storage_variability':
                 obj_val = self.compute_storage_variability(
-                    df=model_output['dam_remaining_storage']
+                    df=sim_vars['dam_remaining_storage']
                 )
             if obj == 'sediment_trapped_initial':
-                sediment_trapped = model_output['system_statistics']['sedtrap_%']
+                sediment_trapped = sim_vars['system_statistics']['sedtrap_%']
                 obj_val = float(sediment_trapped.iloc[0])
             if obj == 'sediment_released_median':
-                sediment_released = model_output['system_statistics']['sedrelease_%']
+                sediment_released = sim_vars['system_statistics']['sedrelease_%']
                 median_year = len(sediment_released) // 2
                 obj_val = float(sediment_released.iloc[median_year])
-            model_objectives.append(obj_val)
+            # normalized objective
+            obj_norm = (obj_val - objs_bounds[obj][0]) / (objs_bounds[obj][1] - objs_bounds[obj][0])
+            # maximum to minimum conversion if any
+            obj_min = obj_norm if objs_dirs[obj] == 'min' else - obj_norm
+            # sim_objs.append(obj_norm)
+            sim_objs.append(obj_min)
 
         # compute constraint values
-        model_constraints = typing.cast(list[float], [])
+        sim_constrs = typing.cast(list[float], [])
         for constr in constraints:
             if constr == 'lb_lifespan':
-                constr_val = min(model_output['dam_lifespan']['life_year'])
-            model_constraints.append(constr_val)
+                constr_val = min(sim_vars['dam_lifespan']['life_year'])
+            if constr == 'ub_storage_sum':
+                constr_val = sum(storage_dict.values())
+            sim_constrs.append(constr_val)
 
-        scenario_output = (model_objectives, model_constraints)
+        # scenario output
+        scenario_output = (sim_objs, sim_constrs)
 
         return scenario_output
 
@@ -602,12 +639,18 @@ class SystemDesign:
 
         - ``lb_lifespan``
             - **Operator**: ``>=``
-            - **Remark**: Specifies the lower bound on dam lifespan, ensuring that
-              every dam remains operational for at least the minimum required number of years.
+            - **Remark**: Lower bound on dam lifespan, ensuring that each dam remains operates
+              for at least the minimum required number of years.
+
+        - ``ub_storage_sum``
+            - **Operator**: ``<=``
+            - **Remark**: Upper bound on the total storage volume across all dams, used to prevent
+              unrealistic designs with excessively large reservoirs or prohibitively high deployment costs.
         '''
 
         constrs_ops = {
-            'lb_lifespan': '>='
+            'lb_lifespan': '>=',
+            'ub_storage_sum': '<='
         }
 
         return constrs_ops
@@ -632,15 +675,6 @@ class SystemDesign:
             - **Remark**: Reduce variability in dam lifespans so benefits are distributed more evenly across all dams.
               The objective is computed as the standard deviation of lifespans.
 
-        - ``storage_sum``
-            - **Direction**: Minimize
-            - **Remark**: Promote cost-efficient deployment by reducing the total storage volume of the dam system.
-
-        - ``storage_variability``
-            - **Direction**: Minimize
-            - **Remark**: Limit variability in annual remaining storage across dams, maintaining a balanced relationship
-              between sediment inflow and storage capacity. Computed via :meth:`OptiDamTool.SystemDesign.compute_storage_variability`.
-
         - ``sediment_trapped_initial``
             - **Direction**: Maximize
             - **Remark**: Retain more sediment within the watershed during the initial year, when trapping is most effective.
@@ -650,15 +684,24 @@ class SystemDesign:
             - **Direction**: Minimize
             - **Remark**: Reduce sediment release at the median year of dam system operation to ensure mid-life effectiveness.
               For example, in a 10–11 year lifespan, sediment release in year 6 is used as the metric.
+
+        - ``storage_sum``
+            - **Direction**: Minimize
+            - **Remark**: Promote cost-efficient deployment by reducing the total storage volume of the dam system.
+
+        - ``storage_variability``
+            - **Direction**: Minimize
+            - **Remark**: Limit variability in annual remaining storage across dams, maintaining a balanced relationship
+              between sediment inflow and storage capacity. Computed via :meth:`OptiDamTool.SystemDesign.compute_storage_variability`.
         '''
 
         objs_dirs = {
             'lifespan': 'max',
             'lifespan_std': 'min',
-            'storage_sum': 'min',
-            'storage_variability': 'min',
             'sediment_trapped_initial': 'max',
-            'sediment_released_median': 'min'
+            'sediment_released_median': 'min',
+            'storage_sum': 'min',
+            'storage_variability': 'min'
         }
 
         return objs_dirs
@@ -681,10 +724,10 @@ class SystemDesign:
     ) -> pandas.DataFrame:
 
         '''
-        Optimize dam locations and storage volumes using a multi-objective genetic algorithm,
+        Optimize dam locations and storage volumes using a multi-objective evolutionary algorithm,
         based on annual sediment inflow to watershed drainage pathways.
 
-        This function uses built-in `genetic algorithms <https://platypus.readthedocs.io/en/latest/api/platypus.algorithms.html>`_
+        This function uses built-in `evolutionary algorithms <https://platypus.readthedocs.io/en/latest/api/platypus.algorithms.html>`_
         from the ``platypus-opt`` Python package. Users can perform multiple experiments for
         the same problem, with each run starting from a different initial population.
 
@@ -731,7 +774,7 @@ class SystemDesign:
             - ``total_execution_timedelta``: Total execution time in `datetime.timedelta <https://docs.python.org/3/library/datetime.html#timedelta-objects>`_
               string format (HH:MM:SS).
 
-            - ``CPU_number``: Number of CPU cores used for computation.
+            - ``CPU_number``: Number of CPU cores used for computation (either `processes` or `os.cpu_count()`).
 
             - ``experiment_number``: Number of experiments specified by the user.
 
@@ -776,7 +819,7 @@ class SystemDesign:
             .. code-block:: python
 
                 # for dynamic sediment trapping efficiency of dams
-                network_config = {
+                stodym_config = {
                     'sediment_density': 1300,
                     'year_limit': 100,
                     'trap_threshold': 0.05,
@@ -785,7 +828,7 @@ class SystemDesign:
                 }
 
                 # for constant sediment trapping efficiency of dams
-                network_config = {
+                stodym_config = {
                     'sediment_density': 1300,
                     'year_limit': 100,
                     'trap_equation': False,
@@ -798,9 +841,53 @@ class SystemDesign:
             defined in the attribute :attr:`OptiDamTool.SystemDesign.mapping_objective_direction`.
 
         algorithm_name : str
-            Name of the genetic algorithm to use. Supported options:
+            Name of the evolutionary algorithm to use. Supported options:
 
-            - ``NSGAII``
+            - ``PESA2``: Pareto Envelope-based Selection Algorithm that divides the objective space into regions and
+              maintains diversity by regulating density across those regions.
+
+            - ``SPEA2``: Strength Pareto Evolutionary Algorithm that assigns fitness based on
+              dominance strength and incorporates density estimation for better selection pressure.
+
+            - ``IBEA``: Indicator-Based Evolutionary Algorithm that uses a ``Hypervolume`` indicator
+              to guide the search toward well-distributed Pareto-optimal solutions.
+
+            - ``MOEAD``: Multi-Objective Evolutionary Algorithm with Decomposition, which transforms a multi-objective
+              problem into multiple scalar subproblems and solves them cooperatively.
+
+            - ``NSGAII``: Classic Non-dominated Sorting Genetic Algorithm (NSGA-II) that ensures convergence toward the Pareto
+              front while maintaining diversity using crowding distance.
+
+            - ``NSGAIII``: Extension of NSGA-II designed for many-objective problems, using a set of reference directions
+              to maintain diversity across high-dimensional objective spaces.
+
+            - ``EpsMOEA``: ε-dominance Multi-Objective Evolutionary Algorithm that employs an ε-box archive to
+              control archive size and promote solution diversity.
+
+            - ``EpsNSGAII``: Variant of NSGA-II that integrates ε-dominance into selection to maintain a bounded,
+              diverse set of non-dominated solutions.
+
+            .. note::
+
+                - ``MOEAD`` and ``NSGAIII`` are particularly suited for many-objective optimization problems
+                  (more than three objectives). For problems with fewer objectives, ``EpsNSGAII`` is widely adopted.
+
+                - The mapping of required keys to algorithms is as follows:
+
+                .. code-block:: python
+
+                    {
+                        'population_size': ['EpsNSGAII', 'EpsMOEA', 'IBEA', 'MOEAD', 'NSGAII', 'PESA2', 'SPEA2'],
+                        'epsilons': ['EpsMOEA', 'EpsNSGAII'],
+                        'divisions_outer': ['NSGAIII']
+                    }
+
+                - The required key ``epsilons`` must be set between 0 and 1, consistent with the assumption
+                  that all objective values are normalized to the [0, 1] range.
+
+                - For ``NSGAIII``, the required key ``divisions_outer`` determines the number of reference
+                  directions and implicitly controls the population size. The population size is calculated
+                  as the combination ``C(O + D - 1, D)``, where ``O`` is the number of objectives and ``D`` is ``divisions_outer``.
 
         algorithm_config : dict
             Dictionary of algorithm parameters. Must include ``population_size`` along with
@@ -865,8 +952,13 @@ class SystemDesign:
             vars_values=locals()
         )
 
-        # check the vailidity of folder path
+        # check the vailidity of folder_path
         utility._validate_folder_path(
+            folder_path=folder_path
+        )
+
+        # check the folder_path is empty
+        utility._validate_empty_folder(
             folder_path=folder_path
         )
 
@@ -880,13 +972,8 @@ class SystemDesign:
         )
 
         # check keyword validity of stodym_plus input arguments
-        self._validate_kwargs_stodym_plus(
+        self._validate_stodym_kwargs(
             stodym_config=stodym_config
-        )
-
-        # check validity of objectives
-        self._validate_objectives(
-            objectives=objectives
         )
 
         # check genetic algorithm name and keywords
@@ -895,9 +982,22 @@ class SystemDesign:
             algorithm_config=algorithm_config
         )
 
+        # mapping between objectives and their directions
+        objs_dirs = self.mapping_objective_direction
+
+        # mapping between constraints and their operators
+        constrs_ops = self.mapping_constraint_operator
+
+        # check validity of objectives
+        self._validate_objectives(
+            objectives=objectives,
+            objs_dirs=objs_dirs
+        )
+
         # check validity of constraints
         self._validate_constraints(
-            constraints=constraints
+            constraints=constraints,
+            constrs_ops=constrs_ops
         )
 
         # location variables of dams
@@ -912,6 +1012,15 @@ class SystemDesign:
             max_value=storage_bounds[1]
         )
 
+        # objective bounds
+        objs_bounds = self._objective_bounds(
+            dam_number=dam_number,
+            storage_vars=storage_vars,
+            storage_multiplier=storage_multiplier,
+            objectives=objectives,
+            stodym_config=stodym_config
+        )
+
         # problem definition
         problem = platypus.Problem(
             nvars=dam_number + 1,
@@ -924,13 +1033,9 @@ class SystemDesign:
         problem.types[1:] = storage_vars
 
         # problem objective directions
-        objs_dirs = self.mapping_objective_direction
-        for idx, obj in enumerate(objectives):
-            idx_dir = platypus.Problem.MINIMIZE if objs_dirs[obj] == 'minimize' else platypus.Problem.MAXIMIZE
-            problem.directions[idx] = idx_dir
+        problem.directions[:] = platypus.Problem.MINIMIZE
 
         # problem constraints
-        constrs_ops = self.mapping_constraint_operator
         for idx, constr in enumerate(constraints):
             problem.constraints[idx] = platypus.Constraint(
                 op=constrs_ops[constr],
@@ -939,11 +1044,13 @@ class SystemDesign:
 
         # problem function
         problem.function = functools.partial(
-            self.scenario_sediment_control,
+            self._scenario_sediment_control,
             storage_multiplier=storage_multiplier,
             stream_file=stream_file,
             stodym_config=stodym_config,
             objectives=objectives,
+            objs_bounds=objs_bounds,
+            objs_dirs=objs_dirs,
             constraints=constraints
         )
 
@@ -996,13 +1103,16 @@ class SystemDesign:
             objectives=objectives,
             constraints=constraints,
             stream_file=stream_file,
-            stodym_config=stodym_config
+            stodym_config=stodym_config,
+            objs_bounds=objs_bounds,
+            objs_dirs=objs_dirs,
+            constrs_ops=constrs_ops
         )
 
         # save the DataFrame of non-dominated solutions
         solution_df.to_json(
             path_or_buf=os.path.join(folder_path, 'solutions_nondominated.json'),
-            orient="records",
+            orient='records',
             indent=4
         )
 
