@@ -2,6 +2,17 @@
 Release Notes
 ===============
 
+Version 0.5.1
+---------------
+
+* **Release date:** 26-Oct-2025.
+
+* **Features:**
+
+    * Added new objectives in :attr:`OptiDamTool.SystemDesign.mapping_objective_direction` property.
+    * Introduced a new mothod in :class:`OptiDamTool.SystemDesign` for retrieving detailed simulation outputs for a specific solution scenario.
+
+
 Version 0.5.0
 ---------------
 
@@ -12,6 +23,7 @@ Version 0.5.0
     * Added :class:`OptiDamTool.SystemDesign` class for optimizing dam systems using multi-objective evolutionary algorithms.
     * Consolidated and streamlined methods for visualizing individual dam features in the :class:`OptiDamTool.Visual` class.
     * Updated documentation regarding new features.
+
 
 Version 0.4.4
 ---------------
