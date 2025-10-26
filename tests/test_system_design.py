@@ -43,7 +43,9 @@ def test_system_design(
             'sediment_trapped_initial',
             'sediment_released_median',
             'storage_sum',
-            'storage_variability'
+            'drainage_area',
+            'curve_pairwise_deviation',
+            'curve_mean_deviation'
         ]
 
         # constraints
@@ -74,8 +76,17 @@ def test_system_design(
         assert 'solutions_nondominated' in output
         assert 'computation_statistics' in output
         assert len(output['solutions_nondominated']) <= 20
-        assert output['solutions_nondominated'].shape[1] == 26
-        assert len(output['computation_statistics']) == 9
+        assert output['solutions_nondominated'].shape[1] == 28
+        assert len(output['computation_statistics']) == 10
+
+        # Pass: simulate scenario of non-dominated solutions
+        output = OptiDamTool.SystemDesign().solution_scenario_retrieval(
+            solution_file=os.path.join(tmp_dir, 'solutions_nondominated.json'),
+            count=0,
+            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
+            stodym_config=stodym_config
+        )
+        assert isinstance(output, dict)
 
         # Pass: sort non-dominated solution by dam identifiers
         df = analysis.nondominated_solution_sorting(
@@ -119,7 +130,7 @@ def test_system_design(
             stodym_config=stodym_config
         )
         assert isinstance(objs_bounds, dict)
-        assert len(objs_bounds) == 6
+        assert len(objs_bounds) == 8
         assert objectives[0] in objs_bounds
 
         output = system_design._scenario_sediment_control(
@@ -135,7 +146,7 @@ def test_system_design(
         assert isinstance(output, tuple)
         assert len(output) == 2
         assert isinstance(output[0], list)
-        assert len(output[0]) == 6
+        assert len(output[0]) == 8
         assert isinstance(output[1], list)
         assert len(output[1]) == 2
 
