@@ -31,39 +31,40 @@ Leveraging functionalities from the open-source [GeoAnalyze](https://github.com/
 
 Provides tools to prepare inputs for the [WaTEM/SEDEM](https://github.com/watem-sedem) model, which simulates soil erosion, sediment transport capacity, and sediment delivery to stream networks at the watershed scale. While this class includes built-in methods for generating most required inputs, it is still recommended to consult the `GeoAnalyze` documentation for any geospatial operations not covered by its methods.
 
-* Converts Digital Elevation Model (DEM) data into the stream files required for the WaTEM/SEDEM model with the `river routing = 1` extension enabled.
-* Extends input rasters beyond the model region and fills NoData cells with valid values, as WaTEM/SEDEM does not support NoData.
-* Performs reprojection, clipping, resolution rescaling, and reclassification of rasters.
-* Processes open-source [Esri land cover data](https://livingatlas.arcgis.com/landcover/).
-* Generates a land management factor raster from land cover inputs.
-* Computes the product of soil erodibility and rainfall erosivity factors.
-* Converts raster files to the Idrisi raster format, with the `.rst` file extension.
-* Generates effective upstream drainage area polygons for selected dam locations within a stream network.
+* Convert Digital Elevation Model (DEM) data into the stream files required for the WaTEM/SEDEM model with the `river routing = 1` extension enabled.
+* Extend input rasters beyond the model region and fills NoData cells with valid values, as WaTEM/SEDEM does not support NoData.
+* Perform reprojection, clipping, resolution rescaling, and reclassification of rasters.
+* Processe open-source [Esri land cover data](https://livingatlas.arcgis.com/landcover/).
+* Generate a land management factor raster from land cover inputs.
+* Compute the product of soil erodibility and rainfall erosivity factors.
+* Convert raster files to the Idrisi raster format, with the `.rst` file extension.
+* Generate effective upstream drainage area polygons for selected dam locations within a stream network.
 
 
 ### `OptiDamTool.Network` 
 Offers methods for establishing hydrological and sedimentation flow connectivity between dams using the stream network.
 
-* Identifies connectivity between adjacent upstream and downstream dams.
-* Computes the controlled upstream drainage areas for selected dam locations within a stream network.
-* Estimates sediment inflow to dams based on controlled upstream drainage areas.
-* Simulates storage dynamics of individual dams in a system due to sedimentation, using a mass balance approach.
-* Generates updated dam location points and their corresponding controlled drainage polygons when dams become inactive
+* Identify connectivity between adjacent upstream and downstream dams.
+* Compute the controlled upstream drainage areas for selected dam locations within a stream network.
+* Estimate sediment inflow to dams based on controlled upstream drainage areas.
+* Simulate storage dynamics of individual dams in a system due to sedimentation, using a mass balance approach.
+* Generate updated dam location points and their corresponding controlled drainage polygons when dams become inactive
   during system-wide storage dynamics simulation.
 
 
 ### `OptiDamTool.Analysis` 
 Provides methods for analyzing simulation outputs and generating insights.
 
-* Integrates sediment delivery to stream segments.
-* Generates stream shapefiles with comprehensive information of each segment's drainage area and sediment input.
-* Summarizes total sediment dynamics for the model region.
-* Assigns a Coordinate Reference System and the default `GTiff` driver to output Idrisi raster files from a WaTEM/SEDEM simulation.
+* Integrate sediment delivery to stream segments.
+* Generate stream shapefiles with comprehensive information of each segment's drainage area and sediment input.
+* Summarize total sediment dynamics for the model region.
+* Assign a Coordinate Reference System and the default `GTiff` driver to output Idrisi raster files from a WaTEM/SEDEM simulation.
 
 ### `OptiDamTool.SystemDesign` 
 Provides methods for optimizing dam systems within a watershed using a multi-objective evolutionary computation framework.
 
 * For a fixed number of dams, it determines optimal locations and storage capacities based on annual sediment inflows along watershed drainage pathways.
+* Retrieve detailed simulation results for a selected solution scenario.
 
 
 ### `OptiDamTool.Visual` 
