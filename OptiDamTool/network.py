@@ -953,7 +953,7 @@ class Network:
         '''
 
         # dam system storage dynamics and save output
-        lite_dict = self.stodym_plus(
+        stodym_output = self.stodym_plus(
             stream_file=stream_file,
             storage_dict=storage_dict,
             sediment_density=sediment_density,
@@ -991,7 +991,7 @@ class Network:
         )
 
         # zipped iterator of year, dam_removed, and dam_active
-        system_df = lite_dict['system_statistics']
+        system_df = stodym_output['system_statistics']
         variable_list = list(
             zip(
                 [0] + system_df['start_year'].tolist(),

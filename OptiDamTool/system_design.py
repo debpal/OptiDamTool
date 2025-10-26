@@ -9,6 +9,7 @@ import typing
 import os
 import time
 import datetime
+import concurrent.futures
 from .network import Network
 from . import utility
 
@@ -301,9 +302,9 @@ class SystemDesign:
 
         return constraints
 
-    def _df_from_solutions(
+    def _scenario_nondominated(
         self,
-        solutions: list[platypus.Solution],
+        scenario: platypus.Solution,
         dam_number: int,
         storage_vars: platypus.Integer,
         storage_multiplier: float,
@@ -317,123 +318,68 @@ class SystemDesign:
     ) -> pandas.DataFrame:
 
         '''
-        Construct a DataFrame from the non-dominated solutions
-        obtained from the method :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
+        Simulate a non-dominated scenario obtained using :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
         '''
+
+        # Empty dictionary to store output of non-dominated scenario simulation
+        scen_out = {}
+
+        # scenario dam locations and storage volumes
+        dam_ids = scenario.variables[0]
+        dam_storage = [
+            storage_vars.decode(i) * storage_multiplier for i in scenario.variables[1:]
+        ]
+        dam_sort = sorted(
+            zip(dam_ids, dam_storage), key=lambda x: x[0]
+        )
+
+        # store dam locations
+        for i in range(dam_number):
+            scen_out[f'd_{i + 1}'] = dam_sort[i][0]
+
+        # store dam storage volumes
+        for i in range(dam_number):
+            scen_out[f'sv_{i + 1}'] = dam_sort[i][1]
+
+        # scenario storage dynamics simulation
+        scenario_stodym = Network().stodym_plus(
+            stream_file=stream_file,
+            storage_dict=dict(dam_sort),
+            **stodym_config
+        )
+
+        # store dam lifespan
+        for i in range(dam_number):
+            scen_out[f'ls_{i + 1}'] = scenario_stodym['dam_lifespan']['life_year'].iloc[i]
 
         # objective lower bounds
         objs_lb = [
             objs_bounds[obj][0] for obj in objectives
         ]
+
         # objective upper bounds
         objs_ub = [
             objs_bounds[obj][1] for obj in objectives
         ]
 
-        # dam columns
-        col_dam = [
-            f'd_{i}' for i in range(1, dam_number + 1)
+        # normalized objective values
+        objs_normalize = [
+            val if objs_dirs[obj] == 'min' else - val for obj, val in zip(objectives, scenario.objectives)
         ]
 
-        # storage volume columns
-        col_storage = [
-            f'sv_{i}' for i in range(1, dam_number + 1)
-        ]
+        # store objectives
+        for i, obj in enumerate(objectives):
+            actual_val = objs_normalize[i] * (objs_ub[i] - objs_lb[i]) + objs_lb[i]
+            scen_out[f'{obj}({objs_dirs[obj]})'] = actual_val
 
-        # lifespan columns
-        col_lifespan = [
-            f'ls_{i}' for i in range(1, dam_number + 1)
-        ]
+        # store constraints
+        for constr, val in zip(constraints, scenario.constraints):
+            scen_out[f'{constr}{constrs_ops[constr]}{constraints[constr]}'] = val
 
-        # objective columns
-        col_objective = [
-            f'{obj}({objs_dirs[obj]})' for obj in objectives
-        ]
+        # store normalized objective list
+        scen_out['obj_normalize'] = objs_normalize
 
-        # constraint columns
-        col_constraint = [
-            f'{constr}{constrs_ops[constr]}{val}' for constr, val in constraints.items()
-        ]
-
-        # DataFrame construction from non-dominated solutions
-        df_columns = [
-            *col_dam,
-            *col_storage,
-            *col_lifespan,
-            *col_objective,
-            *col_constraint,
-            'obj_normalize'
-        ]
-        df = pandas.DataFrame(
-            columns=df_columns
-        )
-        for idx, sol in enumerate(solutions):
-            # dam locations and storage volumes
-            dam_ids = sol.variables[0]
-            dam_storage = [
-                storage_vars.decode(i) * storage_multiplier for i in sol.variables[1:]
-            ]
-            dam_sort = sorted(
-                zip(dam_ids, dam_storage), key=lambda x: x[0]
-            )
-            df.loc[idx, col_dam] = [i[0] for i in dam_sort]
-            df.loc[idx, col_storage] = [i[1] for i in dam_sort]
-            # storage dynamics simulation
-            sol_output = Network().stodym_plus(
-                stream_file=stream_file,
-                storage_dict=dict(dam_sort),
-                **stodym_config
-            )
-            # dam lifespan
-            df.loc[idx, col_lifespan] = sol_output['dam_lifespan']['life_year'].tolist()
-            # objectives
-            objs_normalize = [
-                val if objs_dirs[obj] == 'min' else - val for val, obj in zip(sol.objectives, objectives)
-            ]
-            objs_actual = [
-                obj * (objs_ub[i] - objs_lb[i]) + objs_lb[i] for i, obj in enumerate(objs_normalize)
-            ]
-            df.loc[idx, col_objective] = objs_actual
-            df.loc[idx, df_columns[-1]] = objs_normalize
-            # constraints
-            df.loc[idx, col_constraint] = sol.constraints
-
-        # remove duplicate rows from DataFrame
-        df = df.drop_duplicates(
-            subset=df_columns[:-1],
-            ignore_index=True
-        )
-
-        # ideal solution array
-        solution_ideal = []
-        for obj in objectives:
-            sol_ideal = 0 if objs_dirs[obj] == 'min' else 1
-            solution_ideal.append(sol_ideal)
-        ideal_array = numpy.array([solution_ideal])
-
-        # array from normalized solutions
-        normalized_array = numpy.array(
-            df[df_columns[-1]].values.tolist(),
-            dtype=float
-        )
-
-        # Eucliean distance from normalized solutions to ideal solution
-        col_euclidean = f'metric_euclidean({solution_ideal})'
-        df[col_euclidean] = scipy.spatial.distance.cdist(
-            XA=normalized_array,
-            XB=ideal_array,
-            metric='euclidean'
-        )
-
-        # insert 'count' column to the DataFrame
-        df_length = len(df)
-        df.insert(
-            loc=0,
-            column='count',
-            value=[i + 1 for i in range(df_length)]
-        )
-
-        return df
+        return scen_out
 
     def _cpu_number(
         self,
@@ -455,14 +401,14 @@ class SystemDesign:
 
         return cpu_num
 
-    def compute_storage_variability(
+    def compute_curve_pairwise_deviation(
         self,
         df: pandas.DataFrame
     ) -> float:
 
         '''
-        Compute a scalar metric representing the variability between annual
-        remaining storage percentage curves of dams.
+        Compute a scalar metric representing the pairwise variability among
+        annual remaining storage percentage curves of dams.
 
         The method processes the input DataFrame as follows:
 
@@ -502,12 +448,73 @@ class SystemDesign:
         )
 
         # normalized pairwise distances
-        normalized_dist = pairwise_dist / pow(t_df.shape[1], 0.5)
+        norm_dist = pairwise_dist / pow(t_df.shape[1], 0.5)
 
         # standard deviation of Euclidean distances
-        std_dist = float(normalized_dist.std())
+        std_dist = float(norm_dist.std())
 
         return std_dist
+
+    def compute_curve_mean_deviation(
+        self,
+        df: pandas.DataFrame
+    ) -> float:
+
+        '''
+        Compute a scalar metric representing the maximum deviation of annual
+        remaining storage percentage curves of dams from their mean curve.
+
+        The method processes the input DataFrame as follows:
+
+        - Selects columns containing the remaining storage percentages of dams.
+        - Replaces NaN and negative values with 0.
+        - Normalizes percentages to the [0, 1] range by dividing by 100.
+        - Computes the mean curve across all dams.
+        - Calculates Euclidean distances between each normalized curve and the mean curve.
+        - Returns the maximum of these normalized Euclidean distances.
+
+        Parameters
+        ----------
+        df : DataFrame
+            DataFrame corresponding to the ``dam_remaining_storage`` key from the output dictionary
+            generated by :meth:`OptiDamTool.Network.stodym_plus`.
+
+        Returns
+        -------
+        float
+            Maximum normalized Euclidean distance between annual remaining storage percentage curves of dams
+            and their mean curve. A smaller value indicates that dams follow more similar patterns relative
+            to the mean remaining storage dynamics.
+        '''
+
+        # conside the positive values only
+        df = df.where(
+            cond=df > 0,
+            other=0
+        )
+
+        # transpose DataFrame and divide by 100
+        t_df = df.iloc[:, 1:].T / 100
+        t_arr = t_df.values.astype(float)
+
+        # mean of rows
+        mean_row = t_arr.mean(
+            axis=0
+        )
+
+        # Euclidean distances from mean row
+        euclidean_dist = numpy.linalg.norm(
+            x=t_arr - mean_row,
+            axis=1
+        )
+
+        # normalized Euclidean distances
+        norm_dist = euclidean_dist / pow(t_df.shape[1], 0.5)
+
+        # maximum normalized Euclidean distances
+        max_dist = float(norm_dist.max())
+
+        return max_dist
 
     def _objective_bounds(
         self,
@@ -536,10 +543,13 @@ class SystemDesign:
             if obj == 'storage_sum':
                 lb_val = dam_number * storage_vars.min_value * storage_multiplier
                 ub_val = dam_number * storage_vars.max_value * storage_multiplier
-            if obj == 'storage_variability':
+            if obj == 'curve_pairwise_deviation':
                 lb_val = 0
                 ub_val = 0.5
-            if obj in ['sediment_trapped_initial', 'sediment_released_median']:
+            if obj == 'curve_mean_deviation':
+                lb_val = 0
+                ub_val = 1
+            if obj in ['sediment_trapped_initial', 'sediment_released_median', 'drainage_area']:
                 lb_val = 0
                 ub_val = 100
             objs_bounds[obj] = [lb_val, ub_val]
@@ -572,8 +582,8 @@ class SystemDesign:
             k: v * storage_multiplier for k, v in zip(selected_dam, selected_storage)
         }
 
-        # siulation output from selected dam and storage volumes
-        sim_vars = Network().stodym_plus(
+        # storage dynamics simulation from selected dam and storage volumes
+        vars_stodym = Network().stodym_plus(
             stream_file=stream_file,
             storage_dict=storage_dict.copy(),
             **stodym_config
@@ -584,28 +594,35 @@ class SystemDesign:
         for obj in objectives:
             if obj == 'lifespan':
                 # dam lifespan with small positive value s a lower bound to penalize low lifespans
-                dam_lifespan = sim_vars['dam_lifespan']['life_year'].clip(
+                dam_lifespan = vars_stodym['dam_lifespan']['life_year'].clip(
                     lower=self.lifespan_epsilon
                 )
                 obj_val = sum(numpy.log(dam_lifespan))
             if obj == 'lifespan_std':
-                lifespan_std = sim_vars['dam_lifespan']['life_year'].std(
+                lifespan_std = vars_stodym['dam_lifespan']['life_year'].std(
                     ddof=0
                 )
                 obj_val = float(lifespan_std)
             if obj == 'storage_sum':
                 obj_val = sum(storage_dict.values())
-            if obj == 'storage_variability':
-                obj_val = self.compute_storage_variability(
-                    df=sim_vars['dam_remaining_storage']
+            if obj == 'curve_pairwise_deviation':
+                obj_val = self.compute_curve_pairwise_deviation(
+                    df=vars_stodym['dam_remaining_storage']
+                )
+            if obj == 'curve_mean_deviation':
+                obj_val = self.compute_curve_mean_deviation(
+                    df=vars_stodym['dam_remaining_storage']
                 )
             if obj == 'sediment_trapped_initial':
-                sediment_trapped = sim_vars['system_statistics']['sedtrap_%']
+                sediment_trapped = vars_stodym['system_statistics']['sedtrap_%']
                 obj_val = float(sediment_trapped.iloc[0])
+            if obj == 'drainage_area':
+                drainage_area = vars_stodym['system_statistics']['drainage_%']
+                obj_val = float(drainage_area.iloc[0])
             if obj == 'sediment_released_median':
-                sediment_released = sim_vars['system_statistics']['sedrelease_%']
+                sediment_released = vars_stodym['system_statistics']['sedrelease_%']
                 median_year = len(sediment_released) // 2
-                obj_val = float(sediment_released.iloc[median_year])
+                obj_val = float(sediment_released.iloc[median_year:].mean())
             # normalized objective
             obj_norm = (obj_val - objs_bounds[obj][0]) / (objs_bounds[obj][1] - objs_bounds[obj][0])
             # maximum to minimum conversion if any
@@ -617,7 +634,7 @@ class SystemDesign:
         sim_constrs = typing.cast(list[float], [])
         for constr in constraints:
             if constr == 'lb_lifespan':
-                constr_val = min(sim_vars['dam_lifespan']['life_year'])
+                constr_val = min(vars_stodym['dam_lifespan']['life_year'])
             if constr == 'ub_storage_sum':
                 constr_val = sum(storage_dict.values())
             sim_constrs.append(constr_val)
@@ -682,17 +699,22 @@ class SystemDesign:
 
         - ``sediment_released_median``
             - **Direction**: Minimize
-            - **Remark**: Reduce sediment release at the median year of dam system operation to ensure mid-life effectiveness.
-              For example, in a 10–11 year lifespan, sediment release in year 6 is used as the metric.
+            - **Remark**: Reduce the average sediment release from the median lifetime of the dam system onward to capture long-term effectiveness.
+              For example, if the system has a 10–11 year lifespan, the average sediment release from year 6 to the end of operation is used as the metric.
 
         - ``storage_sum``
             - **Direction**: Minimize
             - **Remark**: Promote cost-efficient deployment by reducing the total storage volume of the dam system.
 
-        - ``storage_variability``
+        - ``curve_pairwise_deviation``
             - **Direction**: Minimize
-            - **Remark**: Limit variability in annual remaining storage across dams, maintaining a balanced relationship
-              between sediment inflow and storage capacity. Computed via :meth:`OptiDamTool.SystemDesign.compute_storage_variability`.
+            - **Remark**: Limit variability among the annual remaining storage curves of individual dams, ensuring consistency
+              in how dams respond to sediment inflow over time. Computed via :meth:`OptiDamTool.SystemDesign.compute_curve_pairwise_deviation`.
+
+        - ``curve_mean_deviation``
+            - **Direction**: Minimize
+            - **Remark**: Reduce deviation of each dam’s annual remaining storage curve from the overall mean curve, promoting uniform
+              storage behavior across the dam system. Computed via :meth:`OptiDamTool.SystemDesign.compute_curve_mean_deviation`.
         '''
 
         objs_dirs = {
@@ -700,8 +722,10 @@ class SystemDesign:
             'lifespan_std': 'min',
             'sediment_trapped_initial': 'max',
             'sediment_released_median': 'min',
+            'drainage_area': 'max',
             'storage_sum': 'min',
-            'storage_variability': 'min'
+            'curve_pairwise_deviation': 'min',
+            'curve_mean_deviation': 'min'
         }
 
         return objs_dirs
@@ -740,7 +764,7 @@ class SystemDesign:
             multiple experiments. Columns include:
 
             - ``count``
-                Sequential index (starting from 1) for solution numbering.
+                Sequential index (starting from 0) for solution numbering.
 
             - ``d_<i>``
                 Stream identifiers for dams (``<i>`` ranges from 1 to ``dam_number``).
@@ -1079,24 +1103,24 @@ class SystemDesign:
         # average time to run per seed
         time_seed = round((time.time() - experiment_start) / batch_number)
 
-        # merge all fesible solutions from seeds
-        solution_feasible = []
+        # merge fesible scenario from seeds
+        scenario_seed = []
         for s_key in simulation.keys():
             for p_key in simulation[s_key].keys():
                 for seed_solution in simulation[s_key][p_key]:
                     seed_feasible = [
                         fs for fs in seed_solution if fs.feasible
                     ]
-                    solution_feasible.extend(seed_feasible)
+                    scenario_seed.extend(seed_feasible)
 
-        # list of non-dominated solutions
-        solutions_nondominated = platypus.nondominated(
-            solutions=solution_feasible
+        # non-dominated scenarios
+        scenario_nd = platypus.nondominated(
+            solutions=scenario_seed
         )
 
-        # DataFrame from non-dominated solutions
-        solution_df = self._df_from_solutions(
-            solutions=solutions_nondominated,
+        # simulation of individual non-ominated scenario in separate CPU
+        cpu_sim = functools.partial(
+            self._scenario_nondominated,
             dam_number=dam_number,
             storage_vars=storage_vars,
             storage_multiplier=storage_multiplier,
@@ -1107,6 +1131,52 @@ class SystemDesign:
             objs_bounds=objs_bounds,
             objs_dirs=objs_dirs,
             constrs_ops=constrs_ops
+        )
+
+        # save CPU simulation output in a list
+        cpu_list = []
+        with concurrent.futures.ProcessPoolExecutor(max_workers=cpu_num) as executor:
+            # Multicore simulation
+            futures = [
+                executor.submit(cpu_sim, sol) for sol in scenario_nd
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                cpu_list.append(future.result())
+
+        # DataFrame from non-dominated solutions
+        solution_df = pandas.DataFrame.from_records(
+            data=cpu_list
+        )
+        df_columns = list(solution_df.columns)
+
+        # remove duplicate rows from DataFrame
+        solution_df = solution_df.drop_duplicates(
+            subset=df_columns[-1],
+            ignore_index=True
+        )
+
+        # Ideal utopian objective array
+        objs_utopian = []
+        for obj in objectives:
+            utopian_val = 0 if objs_dirs[obj] == 'min' else 1
+            objs_utopian.append(utopian_val)
+        utopian_array = numpy.array([objs_utopian])
+
+        # array from normalized solutions
+        normalized_array = numpy.array(
+            solution_df[df_columns[-1]].values.tolist(),
+            dtype=float
+        )
+
+        # Eucliean distance from normalized solutions to utopian point
+        solution_df[f'metric_euclidean({objs_utopian})'] = numpy.linalg.norm(
+            x=normalized_array - numpy.array(objs_utopian),
+            axis=1
+        )
+
+        # insert 'count' column to the DataFrame
+        solution_df = solution_df.reset_index(
+            names=['count']
         )
 
         # save the DataFrame of non-dominated solutions
@@ -1128,6 +1198,7 @@ class SystemDesign:
             'batch_run_number': batch_number,
             'average_experiment_time (s)': time_seed,
             'average_experiment_timedelta': f'{datetime.timedelta(seconds=time_seed)}',
+            'algorithm_name': algorithm_name,
             'total_function_evaluations': seeds * nfe,
             'total_nondominated_solutions': len(solution_df)
         }
@@ -1153,3 +1224,83 @@ class SystemDesign:
         }
 
         return output
+
+    def solution_scenario_retrieval(
+        self,
+        solution_file: str,
+        count: int,
+        stream_file: str,
+        stodym_config: dict[str, typing.Any]
+    ) -> dict[str, pandas.DataFrame]:
+
+        '''
+        Retrieve detailed simulation outputs from :meth:`OptiDamTool.Network.stodym_plus`
+        for a specific solution scenario obtained via :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
+
+        Parameters
+        ----------
+        solution_file : str
+            Path to the ``solutions_nondominated.json`` file generated by :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`,
+            containing non-dominated solution scenarios.
+
+        count : int
+            Integer index of the selected scenario (``count``) in ``solutions_nondominated.json`` for which detailed simulation
+            results are to be retrieved using :meth:`OptiDamTool.Network.stodym_plus`.
+
+        stream_file : str
+            Path to the input stream GeoJSON file generated by :meth:`OptiDamTool.Analysis.sediment_delivery_to_stream_geojson`.
+
+        stodym_config : dict
+            Dictionary of input configuration parameters passed to :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`
+            to obtain the solution scenario. To store the results, include an additional key ``folder_path``
+            specifying the output directory where JSON files will be saved.
+
+        Returns
+        -------
+        dict
+            Dictionary produced by :meth:`OptiDamTool.Network.stodym_plus`,
+            containing detailed simulation results for the selected solution scenario.
+        '''
+
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.solution_scenario_retrieval
+            ),
+            vars_values=locals()
+        )
+
+        # validate stodym_config
+        for key in stodym_config:
+            if key in ['stream_file', 'storage_dict']:
+                raise KeyError(
+                    f'Key "{key}" is not allowed in stodym_config'
+                )
+
+        # DataFrame of non-dominated solutions
+        df = pandas.read_json(
+            path_or_buf=solution_file,
+            orient='records'
+        )
+
+        # scenario from count
+        scenario = df.iloc[count]
+
+        # number of dams
+        dam_number = len(
+            [i for i in scenario.index if i.startswith('d_')]
+        )
+
+        # storage dictionary
+        storage_dict = {}
+        for i in range(1, dam_number + 1):
+            storage_dict[int(scenario[f'd_{i}'])] = float(scenario[f'sv_{i}'])
+
+        # scenario storage dynamics simulation
+        scenario_stodym = Network().stodym_plus(
+            stream_file=stream_file,
+            storage_dict=storage_dict,
+            **stodym_config
+        )
+
+        return scenario_stodym
