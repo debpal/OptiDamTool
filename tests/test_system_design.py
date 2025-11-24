@@ -60,7 +60,7 @@ def test_system_design(
             storage_bounds=(1, 50),
             storage_multiplier=50000,
             stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
-            stodym_config=stodym_config,
+            stodym_config=stodym_config.copy(),
             objectives=objectives,
             algorithm_name='NSGAII',
             algorithm_config={
@@ -77,16 +77,27 @@ def test_system_design(
         assert 'computation_statistics' in output
         assert len(output['solutions_nondominated']) <= 20
         assert output['solutions_nondominated'].shape[1] == 28
-        assert len(output['computation_statistics']) == 10
+        assert len(output['computation_statistics']) == 12
 
         # Pass: simulate scenario of non-dominated solutions
-        output = OptiDamTool.SystemDesign().solution_scenario_retrieval(
+        output = OptiDamTool.SystemDesign().scenario_stodym_plus(
             solution_file=os.path.join(tmp_dir, 'solutions_nondominated.json'),
             count=0,
             stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
             stodym_config=stodym_config
         )
         assert isinstance(output, dict)
+
+        # Pass: simulate scenario of non-dominated solutions
+        output = OptiDamTool.SystemDesign().scenario_stodym_plus_drainage_response(
+            solution_file=os.path.join(tmp_dir, 'solutions_nondominated.json'),
+            count=0,
+            stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
+            flwdir_file=os.path.join(data_folder, 'flwdir.tif'),
+            folder_path=tmp_dir,
+            stodym_config=stodym_config
+        )
+        assert len(output) >= 1
 
         # Pass: sort non-dominated solution by dam identifiers
         df = analysis.nondominated_solution_sorting(

@@ -28,7 +28,7 @@ def test_visual(
     with tempfile.TemporaryDirectory() as tmp_dir:
 
         # Pass: detailed version of storage dynamics for sedimentation and draiange scenarios
-        output = network.stodym_plus_with_drainage_scenarios(
+        output = network.stodym_plus_drainage_response(
             stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
             flwdir_file=os.path.join(data_folder, 'flwdir.tif'),
             storage_dict={

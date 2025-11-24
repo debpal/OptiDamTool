@@ -417,15 +417,3 @@ def test_error_systemdesign(
             constrs_ops=constrs_ops
         )
     assert exc_info.value.args[0] == 'Value of key "lb_lifespan" in "constraints" must be numeric, but got type "str"'
-
-    # Error: invalid key in stodym_config for solution_scenario_retrieval
-    with pytest.raises(Exception) as exc_info:
-        system_design.solution_scenario_retrieval(
-            solution_file='solutions_nondominated.json',
-            count=0,
-            stream_file='stream_with_sediment.geojson',
-            stodym_config={
-                'stream_file': "stream_with_sediment.geojson"
-            }
-        )
-    assert exc_info.value.args[0] == 'Key "stream_file" is not allowed in stodym_config'
