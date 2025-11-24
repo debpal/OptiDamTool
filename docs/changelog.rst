@@ -2,6 +2,14 @@
 Release Notes
 ===============
 
+Version 0.5.2
+---------------
+
+* **Release date:** 24-Nov-2025.
+
+* **Features:** Added a new method to :class:`OptiDamTool.SystemDesign` that enables retrieval of detailed storage dynamics and drainage responses
+  for any solution scenario generated during the optimization process.
+
 Version 0.5.1
 ---------------
 
@@ -10,7 +18,7 @@ Version 0.5.1
 * **Features:**
 
     * Added new objectives in :attr:`OptiDamTool.SystemDesign.mapping_objective_direction` property.
-    * Introduced a new mothod in :class:`OptiDamTool.SystemDesign` for retrieving detailed simulation outputs for a specific solution scenario.
+    * Introduced a new mothod in :class:`OptiDamTool.SystemDesign` for retrieving detailed simulation outputs for any solution scenario generated during the optimization process.
 
 
 Version 0.5.0
