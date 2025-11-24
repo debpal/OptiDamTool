@@ -452,7 +452,7 @@ code:
         output = system_design.sediment_control_by_fixed_dams(
             dam_number=5,
             storage_bounds=(1, 50),
-            storage_multiplier=50000,
+            storage_multiplier=100000,
             stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
             stodym_config={
                 'sediment_density': 1300,
@@ -460,25 +460,61 @@ code:
                 'trap_threshold': 0.05,
                 'brown_d': 1
             },
-            objectives = [
+            objectives=[
+                'drainage_area',
                 'lifespan',
-                'lifespan_std',
                 'sediment_trapped_initial',
-                'storage_sum',
-                'storage_variability',
-                'sediment_released_median'
+                'sediment_released_median',
+                'curve_mean_deviation'
             ],
             algorithm_name='NSGAII',
             algorithm_config={
-                'population_sizee': 10
+                'population_size': 10
             },
             nfe=100,
             seeds=4,
-            folder_path=r"C:\Users\username\output_folder",
+            folder_path=r"C:\Users\username\output_folder\dam_optimization",
             constraints={
-                'lb_lifespan': 10
+                'lb_lifespan': 10,
+                'ub_storage_sum': 10000000
             }
         )
 
 
+Scenario Simulation from Optimized Solutions
+-------------------------------------------------------
+
+To retrieve the detailed simulation outputs for a specific scenario obtained from the optimization process, use the following procedure.
+This allows you to reproduce the system behavior for any selected solution and inspect all associated performance metrics.
+
+
+.. code-block:: python
+    
+    # storage dynamics
+    output = system_design.scenario_stodym_plus(
+        solution_file=r"C:\Users\username\output_folder\dam_optimization\solutions_nondominated.json",
+        count=0,
+        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
+        stodym_config={
+            'sediment_density': 1300,
+            'year_limit': 100,
+            'trap_threshold': 0.05,
+            'brown_d': 1
+        },
+    )
+    
+    # storage dynamics and drainage response
+    output = system_design.scenario_stodym_plus_drainage_response(
+        solution_file=r"C:\Users\username\output_folder\dam_optimization\solutions_nondominated.json",
+        count=0,
+        stream_file=r"C:\users\username\output_folder\stream_with_sediment.geojson",
+        flwdir_file=r"C:\users\username\output_folder\flwdir.tif",
+        folder_path=r"C:\Users\username\output_folder\dam_optimization\scenario_and_drainage",
+        stodym_config={
+            'sediment_density': 1300,
+            'year_limit': 100,
+            'trap_threshold': 0.05,
+            'brown_d': 1
+        }
+    )
 
