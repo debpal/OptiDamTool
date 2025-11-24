@@ -1294,11 +1294,11 @@ class SystemDesign:
             Same dictionary passed to :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
             To store the results, include an additional key ``folder_path`` specifying the output directory where JSON files will be saved.
 
-        .. warning::
+            .. warning::
 
-            If the ``stream_file`` or the ``stodym_config`` dictionary does not match the input used in
-            :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`, the retrieved
-            output parameter values will not correspond to those in ``solutions_nondominated.json``.
+                If the ``stream_file`` or the ``stodym_config`` dictionary does not match the input used in
+                :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`, the retrieved
+                output parameter values will not correspond to those in ``solutions_nondominated.json``.
 
         Returns
         -------
@@ -1368,11 +1368,11 @@ class SystemDesign:
             Dictionary of input configuration parameters passed to :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`
             to obtain the solution scenario.
 
-        .. warning::
+            .. warning::
 
-            If the ``stream_file``, ``flwdir_file``, or the ``stodym_config`` dictionary does not match the input used in
-            :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`, the retrieved
-            output parameter values will not correspond to those in ``solutions_nondominated.json``.
+                If the ``stream_file``, ``flwdir_file``, or the ``stodym_config`` dictionary does not match the input used in
+                :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`, the retrieved
+                output parameter values will not correspond to those in ``solutions_nondominated.json``.
 
         Returns
         -------
