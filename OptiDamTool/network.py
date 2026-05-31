@@ -598,7 +598,7 @@ class Network:
             Further details can be found in `Verstraeten and Poesen (2000) <https://doi.org/10.1177/030913330002400204>`_.
 
         trap_threshold : float, optional
-            Minimum trap efficiency required to keep a dam active (default 0.05).
+            Minimum trap efficiency required to keep a dam active (default 0.1).
             Dams with efficiency below this value are treated as inactive.
 
         brown_d : float, optional

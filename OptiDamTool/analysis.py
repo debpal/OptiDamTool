@@ -353,7 +353,7 @@ class Analysis:
             - ``dam_identifiers``
               Sort the DataFrame by the ``d_<i>`` columns in ascending order.
 
-            - ``euclidean_metric``
+            - ``metric_euclidean``
               Sort the DataFrame by the column ``euclidean_metric(<ideal_solution>)``,
               which represents the Euclidean distance of normalized solutions to the
               ideal solution, in ascending order.

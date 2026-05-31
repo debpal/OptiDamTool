@@ -6,11 +6,13 @@ import geopandas
 import numpy
 import os
 import typing
+import platypus
+import itertools
+from .system_design import SystemDesign
 from . import utility
 
 
 class Visual:
-
     '''
     Provides utilities for visualizing data.
     '''
@@ -56,7 +58,6 @@ class Visual:
         title_fontsize: int = 12,
         gui_window: bool = True
     ) -> matplotlib.figure.Figure:
-
         '''
         Generates a figure with two horizontally arranged plots:
 
@@ -242,7 +243,6 @@ class Visual:
         title_fontsize: int = 15,
         gui_window: bool = True
     ) -> matplotlib.figure.Figure:
-
         '''
         Generates a figure showing dam locations along the stream path, with an option to
         display the stream segment identifiers for each dam.
@@ -429,6 +429,7 @@ class Visual:
         plot_release: bool = True,
         plot_drainage: bool = True,
         system_linewidth: int | float = 3,
+        xaxis_lim: int | None = None,
         xtick_gap: int = 10,
         ytop_offset: int | float = 0,
         ybottom_offset: int | float = 0,
@@ -439,7 +440,6 @@ class Visual:
         title_fontsize: int = 15,
         gui_window: bool = True
     ) -> matplotlib.figure.Figure:
-
         '''
         Generates a figure summarizing dam system statistics with annual percent changes for key metrics:
 
@@ -487,6 +487,9 @@ class Visual:
 
         system_linewidth : float, optional
             Line width for plotting the system statistics. Default is 3.
+
+        xaxis_lim : int, optional
+            Upper limit of the x-axis. Default is None.
 
         xtick_gap : int, optional
             Gap between two x-axis ticks. Default is 10.
@@ -606,7 +609,7 @@ class Visual:
 
         # x-axis customization
         year_max = df['start_year'].max()
-        xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap
+        xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap if xaxis_lim is None else xaxis_lim
         subplot.set_xlim(
             left=0,
             right=xaxis_max
@@ -706,6 +709,8 @@ class Visual:
         fig_title: str = '',
         colormap_name: str = 'coolwarm',
         dam_linewidth: int | float = 2,
+        xaxis_lim: int | None = None,
+        yaxis_lim: int | None = None,
         xtick_gap: int = 10,
         ytick_gap: int | float = 10,
         ytop_offset: int | float = 0,
@@ -717,7 +722,6 @@ class Visual:
         title_fontsize: int = 15,
         gui_window: bool = True
     ) -> matplotlib.figure.Figure:
-
         '''
         Generate a figure illustrating the annual variability of key features for each dam in the system.
         The input data are produced by the methods :meth:`OptiDamTool.Network.stodym_plus` and
@@ -752,7 +756,7 @@ class Visual:
             Height of the figure in inches. Default is 5.
 
         fig_title : str, optional
-            Title of the figure. Default is 'Dam annual sediment trapping'.
+            Title of the figure. Default is an empty string.
 
         colormap_name : str, optional
             Name of the `colormap <https://matplotlib.org/stable/users/explain/colors/colormaps.html>`_
@@ -760,6 +764,12 @@ class Visual:
 
         dam_linewidth : float, optional
             Line width for plotting the storage variation of individual dams. Default is 2.
+
+        xaxis_lim : int, optional
+            Upper limit of the x-axis. Default is None.
+
+        yaxis_lim : int, optional
+            Upper limit of the x-axis. Default is None.
 
         xtick_gap : int, optional
             Gap between two x-axis ticks. Default is 10.
@@ -876,7 +886,7 @@ class Visual:
 
         # x-axis customization
         year_max = df['start_year'].max()
-        xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap
+        xaxis_max = (int(year_max / xtick_gap) + 1) * xtick_gap if xaxis_lim is None else xaxis_lim
         plot_data.set_xlim(
             left=0,
             right=xaxis_max
@@ -915,7 +925,7 @@ class Visual:
 
         # y-axis customization
         df_max = df[dam_cols].max().max()
-        yaxis_ub = (int(df_max / ytick_gap) + 1) * ytick_gap
+        yaxis_ub = (int(df_max / ytick_gap) + 1) * ytick_gap if yaxis_lim is None else yaxis_lim
         yaxis_max = yaxis_ub if yaxis_ub < 100 else 100
         plot_data.set_ylim(
             bottom=0 + ybottom_offset,
@@ -969,5 +979,512 @@ class Visual:
         # figure display
         matplotlib.pyplot.show() if gui_window else None
         matplotlib.pyplot.close(figure)
+
+        return figure
+
+    def objectives_parallel_coordinate(
+        self,
+        json_file: str,
+        objs_rename: dict[str, str],
+        figure_file: str,
+        benchmark_solution: typing.Optional[list[float]] = None,
+        benchmark_color: str = 'k',
+        benchmark_linewidth: int | float = 3,
+        select_solution: typing.Optional[list[float]] = None,
+        select_color: str = 'red',
+        select_linewidth: int | float = 3,
+        fig_width: int | float = 10,
+        fig_height: int | float = 5,
+        fig_title: str = 'Parallel coordinate plot',
+        colormap_name: str = 'Spectral',
+        xtick_rotation: int = 0,
+        tick_fontsize: int = 10,
+        axis_fontsize: int = 12,
+        title_fontsize: int = 15,
+        gui_window: bool = True
+    ) -> matplotlib.figure.Figure:
+        '''
+        Generate a parallel coordinate plot for Pareto front solutions.
+        Optionally, benchmark and selected solutions can also be highlighted in the figure.
+
+        Parameters
+        ----------
+        json_file : str
+            Path to the JSON file containing Pareto front solutions generated by
+            :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
+
+        objs_rename : dict
+            Dictionary mapping objective names obtained from :meth:`OptiDamTool.SystemDesign.mapping_objective_direction`
+            to the labels displayed in the output figure. All keys must be present in the JSON file.
+            Values may be identical to the keys if no renaming is required.
+
+        figure_file : str
+            Path to the output figure file.
+
+        benchmark_solution : list, optional
+            Benchmark solution values to display in the parallel coordinate plot. Default is None.
+
+        benchmark_color : str, optional
+            Line color for the benchmark solution. Default is black.
+
+        benchmark_linewidth : float, optional
+            Line width for the benchmark solution. Default is 3.
+
+        select_solution : list, optional
+            Selected solution values to display in the parallel coordinate plot. Default is None.
+
+        select_color : str, optional
+            Line color for the selected solution. Default is red.
+
+        select_linewidth : float, optional
+            Line width for the selected solution. Default is 3.
+
+        fig_width : float, optional
+            Width of the figure in inches. Default is 10.
+
+        fig_height : float, optional
+            Height of the figure in inches. Default is 5.
+
+        fig_title : str, optional
+            Title of the figure. Default is 'Parallel coordinate plot'.
+
+        colormap_name : str, optional
+            Name of the `colormap <https://matplotlib.org/stable/users/explain/colors/colormaps.html>`_
+            used to plot Pareto front solutions. Default is 'Spectral'.
+
+        tick_fontsize : int, optional
+            Font size of the tick labels on both axes. Default is 10.
+
+        axis_fontsize : int, optional
+            Font size of the axis labels. Default is 12.
+
+        title_fontsize : int, optional
+            Font size of the figure title. Default is 15.
+
+        gui_window : bool, optional
+            If True (default), open a graphical user interface window of the plot.
+
+        Returns
+        -------
+        Figure
+            A Figure object containing the parallel coordinate plot of the Pareto front solutions.
+        '''
+
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.objectives_parallel_coordinate
+            ),
+            vars_values=locals()
+        )
+
+        # check validity of figure file
+        self._validate_figure_ext(
+            figure_file=figure_file
+        )
+
+        # Given objectives
+        objectives = [
+            i for i in objs_rename
+        ]
+
+        # check validity of objectives
+        SystemDesign()._validate_objectives(
+            objectives=objectives,
+            objs_dirs=SystemDesign().mapping_objective_direction
+        )
+
+        # DataFrame of scenarios
+        df = pandas.read_json(
+            path_or_buf=json_file,
+            orient='records'
+        )
+
+        # DataFrame objective columns
+        df_objs = [
+            i[:-5] for i in df.columns if any(k in i for k in ['(min)', '(max)'])
+        ]
+
+        # Check given objectives exist in DataFrame
+        for obj in objectives:
+            if obj not in df_objs:
+                raise ValueError(
+                    f'Objective "{obj}" not used in optimization; valid names are {df_objs}'
+                )
+
+        # normalized DataFrame with given objectives order
+        norm_df = pandas.DataFrame(
+            data=df['obj_normalize'].tolist(),
+            columns=df_objs
+        )
+        norm_df = norm_df[objectives].reset_index(names=['count'])
+        norm_df['count'] = 1 + norm_df['count']
+
+        # setting figure
+        figure = matplotlib.pyplot.figure(
+            figsize=(fig_width, fig_height)
+        )
+        subplot = figure.subplots(1, 1)
+
+        # parallel coordinates plot
+        pandas.plotting.parallel_coordinates(
+            frame=norm_df,
+            class_column='count',
+            ax=subplot,
+            colormap=colormap_name
+        )
+
+        # plot benchmark solution
+        if benchmark_solution is not None:
+            if len(benchmark_solution) != len(objs_rename):
+                raise ValueError(
+                    f'Length of benchmark solution list ({len(benchmark_solution)}) does not match the number of objectives ({len(objs_rename)})'
+                )
+            benchmark_df = pandas.DataFrame(
+                data=[
+                    [1] + benchmark_solution
+                ],
+                columns=norm_df.columns
+            )
+            pandas.plotting.parallel_coordinates(
+                frame=benchmark_df,
+                class_column='count',
+                ax=subplot,
+                color=(benchmark_color,),
+                linewidth=benchmark_linewidth,
+                linestyle='--'
+            )
+
+        # plot selected solution
+        if select_solution is not None:
+            if len(select_solution) != len(objs_rename):
+                raise ValueError(
+                    f'Length of selected solution list ({len(select_solution)}) does not match the number of objectives ({len(objs_rename)})'
+                )
+            select_df = pandas.DataFrame(
+                data=[
+                    [1] + select_solution
+                ],
+                columns=norm_df.columns
+            )
+            pandas.plotting.parallel_coordinates(
+                frame=select_df,
+                class_column='count',
+                ax=subplot,
+                color=(select_color,),
+                linewidth=select_linewidth,
+                linestyle='--'
+            )
+
+        # remove legend
+        legend = subplot.get_legend()
+        if legend is not None:
+            legend.remove()
+
+        # x-axis customization
+        subplot.set_xticklabels(
+            labels=[
+                objs_rename[i] for i in objectives
+            ],
+            rotation=xtick_rotation,
+            fontsize=tick_fontsize
+        )
+
+        # y-axis customization
+        subplot.set_ylim(
+            bottom=0,
+            top=1
+        )
+        yticks = [i / 10 for i in range(0, 11)]
+        subplot.set_yticks(
+            ticks=yticks
+        )
+        subplot.set_yticklabels(
+            labels=[f'{yt:.1f}' for yt in yticks],
+            fontsize=tick_fontsize
+        )
+        subplot.set_ylabel(
+            ylabel='Normalized objectives',
+            fontsize=axis_fontsize
+        )
+
+        # create ScalarMappable of colorbar
+        sm = matplotlib.cm.ScalarMappable(
+            cmap=matplotlib.pyplot.get_cmap(colormap_name),
+            norm=matplotlib.colors.Normalize(
+                vmin=1,
+                vmax=len(norm_df)
+            )
+        )
+        sm.set_array([])
+
+        # add colorbar to figure
+        cbar = figure.colorbar(
+            mappable=sm,
+            ax=subplot
+        )
+        cbar.set_label(
+            label='Pareto front solution index',
+            fontsize=axis_fontsize
+        )
+        cbar.ax.tick_params(labelsize=tick_fontsize)
+
+        # figure title
+        figure.suptitle(
+            fig_title,
+            fontsize=title_fontsize
+        )
+
+        # saving figure
+        figure.savefig(
+            fname=figure_file,
+            bbox_inches='tight'
+        )
+
+        # figure display
+        matplotlib.pyplot.show() if gui_window else None
+        matplotlib.pyplot.close(figure)
+
+        return figure
+
+    def objectives_tradeoff_2D(
+        self,
+        json_file: str,
+        objs_rename: dict[str, str],
+        figure_file: str,
+        fig_rows: int,
+        fig_cols: int,
+        fig_width: int | float = 15,
+        fig_height: int | float = 8,
+        fig_title: str = 'Two-dimensional trade-off',
+        tick_fontsize: int = 10,
+        axis_fontsize: int = 12,
+        title_fontsize: int = 15,
+        gui_window: bool = True
+    ) -> matplotlib.figure.Figure:
+        '''
+        Generate two-dimensional projections of Pareto front solutions for all combinations of the selected objectives.
+        Additionally, print a dictionary whose keys are tuples of objective names and whose values contain information
+        on the number of non-dominated solutions, along with their lower and upper bounds.
+
+        Parameters
+        ----------
+        json_file : str
+            Path to the JSON file containing Pareto front solutions generated by
+            :meth:`OptiDamTool.SystemDesign.sediment_control_by_fixed_dams`.
+
+        objs_rename : dict
+            Dictionary mapping objective names obtained from :meth:`OptiDamTool.SystemDesign.mapping_objective_direction`
+            to the labels displayed in the output figure. All keys must be present in the JSON file.
+            Values may be identical to the keys if no renaming is required.
+
+        figure_file : str
+            Path to the output figure file.
+
+        fig_rows : int
+            Number of rows in the output plot.
+
+        fig_cols : int
+            Number of columns in the output plot.
+
+        fig_width : float, optional
+            Width of the figure in inches. Default is 15.
+
+        fig_height : float, optional
+            Height of the figure in inches. Default is 8.
+
+        fig_title : str, optional
+            Title of the figure. Default is 'Two-dimensional trade-off'.
+
+        tick_fontsize : int, optional
+            Font size of the tick labels on both axes. Default is 10.
+
+        axis_fontsize : int, optional
+            Font size of the axis labels. Default is 12.
+
+        title_fontsize : int, optional
+            Font size of the figure title. Default is 15.
+
+        gui_window : bool, optional
+            If True (default), open a graphical user interface window of the plot.
+
+        Returns
+        -------
+        Figure
+            A Figure containing two-dimensional projections of the Pareto front
+            solutions for all combinations of the selected objectives.
+        '''
+
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.objectives_tradeoff_2D
+            ),
+            vars_values=locals()
+        )
+
+        # given objectives
+        objectives = [
+            i for i in objs_rename
+        ]
+
+        # objective directions
+        objs_dirs = SystemDesign().mapping_objective_direction
+
+        # check validity of objectives
+        SystemDesign()._validate_objectives(
+            objectives=objectives,
+            objs_dirs=objs_dirs
+        )
+
+        # DataFrame of scenarios
+        df = pandas.read_json(
+            path_or_buf=json_file,
+            orient='records'
+        )
+
+        # DataFrame objective columns
+        df_objs = [
+            i[:-5] for i in df.columns if any(k in i for k in ['(min)', '(max)'])
+        ]
+
+        # Check given objectives exist in DataFrame
+        for obj in objectives:
+            if obj not in df_objs:
+                raise ValueError(
+                    f'Objective "{obj}" not used in optimization; valid names are {df_objs}'
+                )
+
+        # normalized DataFrame with given objectives order
+        norm_df = pandas.DataFrame(
+            data=df['obj_normalize'].tolist(),
+            columns=df_objs
+        )
+        norm_df = norm_df[objectives]
+
+        # setting figure
+        figure = matplotlib.pyplot.figure(
+            figsize=(fig_width, fig_height)
+        )
+        figure_grid = figure.add_gridspec(
+            nrows=fig_rows,
+            ncols=fig_cols
+        )
+
+        # iterate combination of two objectives
+        nd_dict = {}
+        for idx, comb in enumerate(itertools.combinations(objectives, r=2)):
+            idx_obj = list(comb)
+            comb_df = norm_df[idx_obj]
+            # Platypus problem
+            problem = platypus.Problem(
+                nvars=0,
+                nobjs=len(idx_obj)
+            )
+            problem.directions[:] = [
+                platypus.Problem.MINIMIZE if objs_dirs[obj] == 'min' else platypus.Problem.MAXIMIZE for obj in idx_obj
+            ]
+            # list of objective values
+            comb_values = []
+            for row in comb_df.itertuples(index=False):
+                s = platypus.Solution(
+                    problem=problem
+                )
+                s.objectives[:] = row
+                comb_values.append(s)
+            # non-dominated objective values
+            nd_values = [
+                [v for v in i_nd.objectives] for i_nd in platypus.nondominated(comb_values)
+            ]
+            nd_df = pandas.DataFrame(
+                data=nd_values,
+                columns=idx_obj
+            )
+            nd_dict[tuple(idx_obj)] = {
+                'length': len(nd_df),
+                f'{idx_obj[0]}': (
+                    float(nd_df[idx_obj[0]].min()),
+                    float(nd_df[idx_obj[0]].max())
+                ),
+                f'{idx_obj[1]}': (
+                    float(nd_df[idx_obj[1]].min()),
+                    float(nd_df[idx_obj[1]].max())
+                )
+            }
+            # plotting data
+            r = idx // fig_cols
+            c = idx % fig_cols
+            idx_plot = figure.add_subplot(figure_grid[r, c])
+            idx_plot.plot(
+                comb_df[idx_obj[0]], comb_df[idx_obj[1]],
+                marker='o',
+                linestyle='',
+                color='gold'
+            )
+            idx_plot.plot(
+                nd_df[idx_obj[0]], nd_df[idx_obj[1]],
+                marker='o',
+                linestyle='',
+                color='red'
+            )
+            idx_plot.set_xlabel(
+                xlabel=objs_rename[idx_obj[0]],
+                fontsize=axis_fontsize
+            )
+            idx_plot.set_ylabel(
+                ylabel=objs_rename[idx_obj[1]],
+                fontsize=axis_fontsize
+            )
+            idx_plot.set_xlim(
+                left=-0.05,
+                right=1.05
+            )
+            idx_plot.set_ylim(
+                bottom=-0.05,
+                top=1.05
+            )
+            ticks = [i / 10 for i in range(0, 11, 2)]
+            idx_plot.set_xticks(
+                ticks=ticks
+            )
+            idx_plot.set_yticks(
+                ticks=ticks
+            )
+            idx_plot.set_xticklabels(
+                labels=[f'{xt:.1f}' for xt in ticks],
+                fontsize=tick_fontsize
+            )
+            idx_plot.set_yticklabels(
+                labels=[f'{yt:.1f}' for yt in ticks],
+                fontsize=tick_fontsize
+            )
+            idx_plot.tick_params(
+                length=4,
+                width=2
+            )
+            # hide tick labels
+            if r < fig_rows - 1:
+                idx_plot.tick_params(labelbottom=False)
+            if c > 0:
+                idx_plot.tick_params(labelleft=False)
+
+        # figure title
+        figure.suptitle(
+            fig_title,
+            fontsize=title_fontsize
+        )
+
+        # saving figure
+        figure.savefig(
+            fname=figure_file,
+            bbox_inches='tight'
+        )
+
+        # figure display
+        matplotlib.pyplot.show() if gui_window else None
+        matplotlib.pyplot.close(figure)
+
+        # print the non-dominated solution dictionary
+        print(nd_dict)
 
         return figure
