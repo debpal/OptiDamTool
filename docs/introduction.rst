@@ -76,5 +76,6 @@ Provides methods for visualizing simulation outputs.
     - **Controlled drainage area**: Percentage of the drainage area managed by each dam, relative to the total stream drainage area, evaluated at the start of the simulation year.  
     - **Remaining storage**: Percentage of storage capacity remaining relative to the dam’s initial storage, evaluated at the start of the simulation year.  
     - **Trap efficiency**: Efficiency of sediment trapping expressed as a percentage, evaluated at the start of the simulation year.  
-    - **Trapped sediment**: Percentage of sediment retained by the dam, relative to the total sediment input across all stream segments, evaluated at the end of the simulation year.  
+    - **Trapped sediment**: Percentage of sediment retained by the dam, relative to the total sediment input across all stream segments, evaluated at the end of the simulation year.
+* Generates Pareto front visualizations to support the analysis of multi-objective optimization results, including parallel coordinate plots and two-dimensional trade-off projections.
 

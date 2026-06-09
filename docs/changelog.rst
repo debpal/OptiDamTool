@@ -2,6 +2,16 @@
 Release Notes
 ===============
 
+Version 0.6.0
+---------------
+
+* **Release date:** 09-Jun-2026.
+
+* **Features:**
+
+    * Added methods to the :class:`OptiDamTool.Visual` class for visualizing Pareto front solutions.
+    * Verified compatibility with Python 3.14.
+
 Version 0.5.2
 ---------------
 
