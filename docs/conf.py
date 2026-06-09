@@ -33,12 +33,6 @@ exclude_patterns = [
     '.ipynb_checkpoints'
 ]
 
-autodoc_mock_imports = [
-    "fiona",
-    "geopandas",
-    "rasterio",
-]
-
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = 'sphinx_rtd_theme'

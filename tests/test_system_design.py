@@ -12,6 +12,12 @@ def system_design():
 
 
 @pytest.fixture(scope='class')
+def visual():
+
+    yield OptiDamTool.Visual()
+
+
+@pytest.fixture(scope='class')
 def analysis():
 
     yield OptiDamTool.Analysis()
@@ -19,6 +25,7 @@ def analysis():
 
 def test_system_design(
     system_design,
+    visual,
     analysis
 ):
 
@@ -98,6 +105,42 @@ def test_system_design(
             stodym_config=stodym_config
         )
         assert len(output) >= 1
+
+        # Pass: plot parallel coordinate Pareto front of objectives
+        output = visual.objectives_parallel_coordinate(
+            json_file=os.path.join(tmp_dir, 'solutions_nondominated.json'),
+            objs_rename={
+                'lifespan': 'lifespan',
+                'sediment_trapped_initial': 'sediment_trapped_initial',
+                'sediment_released_median': 'sediment_released_median',
+                'curve_mean_deviation': 'curve_mean_deviation',
+                'drainage_area': 'drainage_area'
+            },
+            figure_file=os.path.join(tmp_dir, 'parallel_coordinate.png'),
+            benchmark_solution=[0.05, 0.05, 0.95, 0.95, 0.05],
+            select_solution=[0.95, 0.95, 0.05, 0.05, 0.95],
+            gui_window=False
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'parallel_coordinate.png'))
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 1
+
+        # Pass: plot two-dimensional Pareto front projections of objectives
+        output = visual.objectives_tradeoff_2D(
+            json_file=os.path.join(tmp_dir, 'solutions_nondominated.json'),
+            objs_rename={
+                'lifespan': 'lifespan',
+                'sediment_trapped_initial': 'sediment_trapped_initial',
+                'sediment_released_median': 'sediment_released_median',
+                'curve_mean_deviation': 'curve_mean_deviation',
+                'drainage_area': 'drainage_area'
+            },
+            figure_file=os.path.join(tmp_dir, 'pareto_front_2d.png'),
+            fig_rows=2,
+            fig_cols=5,
+            gui_window=False
+        )
+        assert os.path.exists(os.path.join(tmp_dir, 'pareto_front_2d.png'))
+        assert sum([file.endswith('.png') for file in os.listdir(tmp_dir)]) == 2
 
         # Pass: sort non-dominated solution by dam identifiers
         df = analysis.nondominated_solution_sorting(
