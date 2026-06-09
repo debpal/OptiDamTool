@@ -144,17 +144,19 @@ class WatemSedem:
             'cumsed_ton'
         ]
 
-        property_cols = [col for col in stream_gdf.columns if col != 'geometry']
-        property_dict = {
-            col: 'int' if col not in target_cols else 'float:19.2' for col in property_cols
-        }
+        property_cols = [
+            col for col in stream_gdf.columns if col != 'geometry'
+        ]
+
+        for col in property_cols:
+            if col in target_cols:
+                stream_gdf[col] = stream_gdf[col].astype(float)
+            else:
+                stream_gdf[col] = stream_gdf[col].astype(int)
+
         stream_gdf.to_file(
             filename=stream_file,
-            schema={
-                'geometry': 'LineString',
-                'properties': property_dict
-            },
-            engine='fiona'
+            engine='pyogrio'
         )
 
         return None
