@@ -61,6 +61,8 @@ def test_visual(
             stream_file=os.path.join(data_folder, 'stream_with_sediment.geojson'),
             dam_file=os.path.join(tmp_dir, 'year_0_dam_location_point.geojson'),
             figure_file=os.path.join(tmp_dir, 'dam_location_in_stream.png'),
+            dam1_file=os.path.join(tmp_dir, 'year_0_dam_location_point.geojson'),
+            plot_dam1id=True,
             gui_window=False
         )
         assert os.path.exists(os.path.join(tmp_dir, 'dam_location_in_stream.png'))
