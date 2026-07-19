@@ -232,20 +232,29 @@ class Visual:
         stream_file: str,
         dam_file: str,
         figure_file: str,
+        dam1_file: typing.Optional[str] = None,
         fig_width: int | float = 6,
         fig_height: int | float = 6,
         fig_title: str = 'Dam locations with stream identifiers',
         stream_linewidth: int | float = 1,
         dam_marker: str = 'o',
         dam_markersize: int = 50,
+        legend_stream: str = 'Drainage pathways',
+        legend_dam: str = 'Optimized dam-system',
+        legend_dam1: str = 'Existing dam-system',
+        legend_loc: str = 'best',
+        legend_fontsize: int = 12,
         plot_damid: bool = True,
+        plot_dam1id: bool = False,
         damid_fontsize: int = 9,
         title_fontsize: int = 15,
         gui_window: bool = True
     ) -> matplotlib.figure.Figure:
         '''
-        Generates a figure showing dam locations along the stream path, with an option to
-        display the stream segment identifiers for each dam.
+        Generates a figure displaying dam locations along stream paths.
+        This method supports comparative visualization between two dam-systems
+        (e.g., optimized vs. existing) and provides options to label stream
+        segment identifiers for each dam.
 
         Parameters
         ----------
@@ -262,6 +271,9 @@ class Visual:
 
         figure_file : str
             Path to the output figure file.
+
+        dam1_file : str, optional
+            Path to an alternative dam location vector file for system comparison.
 
         fig_width : float, optional
             Width of the figure in inches. Default is 6.
@@ -281,8 +293,28 @@ class Visual:
         dam_markersize : int, optional
             Marker size for dam points. Default is 50.
 
+        legend_stream : str, optional
+            Legend label for the ``stream_file`` geometry. Default is 'Drainage pathways'.
+
+        legend_dam : str, optional
+            Legend label for the ``dam_file`` geometry. Default is 'Optimized dam-system'.
+
+        legend_dam1 : str, optional
+            Legend label for the ``dam1_file`` geometry. Default is 'Existing dam-system'.
+
+        legend_loc : str, optional
+            Location of the legend in the figure. Default is 'best'.
+
+        legend_fontsize : int, optional
+            Font size of the legend. Default is 12.
+
         plot_damid : bool, optional
-            If True (default), plot stream segment identifiers for dams.
+            If True (default), labels dam locations with stream segment identifiers
+            from the ``ws_id`` column of ``dam_file``.
+
+        plot_dam1id : bool, optional
+            If True, labels dam locations with stream segment identifiers from
+            the ``ws_id`` column of ``dam1_file``. Default is False.
 
         damid_fontsize : int, optional
             Font size for stream segment identifier labels. Default is 9.
@@ -335,13 +367,30 @@ class Visual:
             linewidth=stream_linewidth,
             zorder=1
         )
+
+        colors = [
+            'green',
+            'red'
+        ]
         dam_gdf.plot(
             ax=subplot,
-            color='orangered',
+            color=colors[0],
             marker=dam_marker,
             markersize=dam_markersize,
             zorder=2
         )
+
+        if dam1_file is not None:
+            dam1_gdf = geopandas.read_file(
+                filename=dam1_file
+            )
+            dam1_gdf.plot(
+                ax=subplot,
+                color=colors[-1],
+                marker=dam_marker,
+                markersize=dam_markersize,
+                zorder=3
+            )
 
         # remove ticks and labels from both axes
         subplot.tick_params(
@@ -356,7 +405,6 @@ class Visual:
         # plot stream segment identifiers of dams
         if plot_damid:
             for dam_id, dam_coords in zip(dam_gdf['ws_id'], dam_gdf.geometry):
-                # xc, yc = dam_coords.x, dam_coords.y
                 subplot.text(
                     x=dam_coords.x,
                     y=dam_coords.y,
@@ -369,33 +417,60 @@ class Visual:
                     zorder=3
                 )
 
-        # stream legend handle
+        if dam1_file is not None:
+            if plot_dam1id:
+                for dam_id, dam_coords in zip(dam1_gdf['ws_id'], dam1_gdf.geometry):
+                    subplot.text(
+                        x=dam_coords.x,
+                        y=dam_coords.y,
+                        s=str(dam_id),
+                        fontsize=damid_fontsize,
+                        fontweight='bold',
+                        ha='left',
+                        va='center',
+                        color='black',
+                        zorder=3
+                    )
+
+        # legend handle
         stream_legend = matplotlib.lines.Line2D(
             xdata=[0],
             ydata=[0],
             color='deepskyblue',
             linewidth=2,
-            label='Stream'
+            label=legend_stream
         )
 
-        # dam legend handle
         dam_legend = matplotlib.lines.Line2D(
             xdata=[0],
             ydata=[0],
-            color='orangered',
+            color='green',
             marker=dam_marker,
             markersize=10,
             linestyle='None',
-            label='Dam'
+            label=legend_dam
         )
 
+        if dam1_file is not None:
+            dam1_legend = matplotlib.lines.Line2D(
+                xdata=[0],
+                ydata=[0],
+                color='red',
+                marker=dam_marker,
+                markersize=10,
+                linestyle='None',
+                label=legend_dam1
+            )
+
         # add custom legend
+        exist_legends = [
+            stream_legend,
+            dam_legend
+        ]
         subplot.legend(
-            handles=[
-                stream_legend,
-                dam_legend
-            ],
-            loc='best'
+            handles=exist_legends + [dam1_legend] if dam1_file is not None else exist_legends,
+            loc=legend_loc,
+            fontsize=legend_fontsize
         )
 
         # figure title
