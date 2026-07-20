@@ -1059,7 +1059,7 @@ class Visual:
 
     def _validate_objs_in_df(
         self,
-        objectives: list[str],
+        objs_rename: dict[str, str],
         df_objs: list[str]
     ) -> None:
         '''
@@ -1067,11 +1067,29 @@ class Visual:
         '''
 
         # Check given objectives exist in DataFrame
-        for obj in objectives:
+        for obj in objs_rename:
             if obj not in df_objs:
                 raise ValueError(
-                    f'Objective "{obj}" not used in optimization; valid names are {df_objs}'
+                    f'Objective "{obj}" in "objs_rename" is not used in optimization; valid names are {df_objs}'
                 )
+
+        return None
+
+    def _validate_equal_len_obj_sol(
+        self,
+        objs_rename: dict[str, str],
+        sol_var: str,
+        sol_vals: list[float]
+    ) -> None:
+        '''
+        Validate that the number of objectives matches the number of solution values.
+        '''
+
+        # Check equal length
+        if len(sol_vals) != len(objs_rename):
+            raise ValueError(
+                f'The length of "{sol_var}" ({len(sol_vals)}) must match the number of "objs_rename" ({len(objs_rename)})'
+            )
 
         return None
 
@@ -1200,7 +1218,7 @@ class Visual:
 
         # Check given objectives exist in DataFrame
         self._validate_objs_in_df(
-            objectives=objectives,
+            objs_rename=objs_rename,
             df_objs=df_objs
         )
 
@@ -1228,10 +1246,11 @@ class Visual:
 
         # plot benchmark solution
         if benchmark_solution is not None:
-            if len(benchmark_solution) != len(objs_rename):
-                raise ValueError(
-                    f'Length of benchmark solution list ({len(benchmark_solution)}) does not match the number of objectives ({len(objs_rename)})'
-                )
+            self._validate_equal_len_obj_sol(
+                objs_rename=objs_rename,
+                sol_var='benchmark_solution',
+                sol_vals=benchmark_solution
+            )
             benchmark_df = pandas.DataFrame(
                 data=[
                     [1] + benchmark_solution
@@ -1249,10 +1268,11 @@ class Visual:
 
         # plot selected solution
         if select_solution is not None:
-            if len(select_solution) != len(objs_rename):
-                raise ValueError(
-                    f'Length of selected solution list ({len(select_solution)}) does not match the number of objectives ({len(objs_rename)})'
-                )
+            self._validate_equal_len_obj_sol(
+                objs_rename=objs_rename,
+                sol_var='select_solution',
+                sol_vals=select_solution
+            )
             select_df = pandas.DataFrame(
                 data=[
                     [1] + select_solution
@@ -1442,7 +1462,7 @@ class Visual:
 
         # Check given objectives exist in DataFrame
         self._validate_objs_in_df(
-            objectives=objectives,
+            objs_rename=objs_rename,
             df_objs=df_objs
         )
 

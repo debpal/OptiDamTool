@@ -209,13 +209,29 @@ def test_error_visual(
     # Error: objective does not exist in DataFrame
     with pytest.raises(Exception) as exc_info:
         visual._validate_objs_in_df(
-            objectives=['iv_o1'],
+            objs_rename={
+                'iv_o1': 'rn_o1'
+            },
             df_objs=[
                 'val_o1',
                 'val_o2'
             ]
         )
-    assert 'Objective "iv_o1" not used in optimization' in exc_info.value.args[0]
+    assert 'Objective "iv_o1" in "objs_rename" is not used in optimization' in exc_info.value.args[0]
+
+    # Error: objective list length does not match with solution list
+    with pytest.raises(Exception) as exc_info:
+        visual._validate_equal_len_obj_sol(
+            objs_rename={
+                'val_o1': 'rn_o1'
+            },
+            sol_var='sel_sol',
+            sol_vals=[
+                'val_o1',
+                'val_o2'
+            ]
+        )
+    assert exc_info.value.args[0] == 'The length of "sel_sol" (2) must match the number of "objs_rename" (1)'
 
 
 def test_error_systemdesign(
