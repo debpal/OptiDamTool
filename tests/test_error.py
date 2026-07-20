@@ -206,6 +206,17 @@ def test_error_visual(
         )
     assert exc_info.value.args[0] == 'At least one plot type must be set to True'
 
+    # Error: objective does not exist in DataFrame
+    with pytest.raises(Exception) as exc_info:
+        visual._validate_objs_in_df(
+            objectives=['iv_o1'],
+            df_objs=[
+                'val_o1',
+                'val_o2'
+            ]
+        )
+    assert 'Objective "iv_o1" not used in optimization' in exc_info.value.args[0]
+
 
 def test_error_systemdesign(
     system_design

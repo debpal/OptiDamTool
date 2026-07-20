@@ -1057,6 +1057,24 @@ class Visual:
 
         return figure
 
+    def _validate_objs_in_df(
+        self,
+        objectives: list[str],
+        df_objs: list[str]
+    ) -> None:
+        '''
+        Validate that all specified objectives exist within the optimization results.
+        '''
+
+        # Check given objectives exist in DataFrame
+        for obj in objectives:
+            if obj not in df_objs:
+                raise ValueError(
+                    f'Objective "{obj}" not used in optimization; valid names are {df_objs}'
+                )
+
+        return None
+
     def objectives_parallel_coordinate(
         self,
         json_file: str,
@@ -1181,11 +1199,10 @@ class Visual:
         ]
 
         # Check given objectives exist in DataFrame
-        for obj in objectives:
-            if obj not in df_objs:
-                raise ValueError(
-                    f'Objective "{obj}" not used in optimization; valid names are {df_objs}'
-                )
+        self._validate_objs_in_df(
+            objectives=objectives,
+            df_objs=df_objs
+        )
 
         # normalized DataFrame with given objectives order
         norm_df = pandas.DataFrame(
@@ -1424,11 +1441,10 @@ class Visual:
         ]
 
         # Check given objectives exist in DataFrame
-        for obj in objectives:
-            if obj not in df_objs:
-                raise ValueError(
-                    f'Objective "{obj}" not used in optimization; valid names are {df_objs}'
-                )
+        self._validate_objs_in_df(
+            objectives=objectives,
+            df_objs=df_objs
+        )
 
         # normalized DataFrame with given objectives order
         norm_df = pandas.DataFrame(
