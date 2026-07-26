@@ -9,7 +9,8 @@
 
 
 [![flake8](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/linting.yml) [![mypy](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/typing.yml) [![pytest](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml/badge.svg)](https://github.com/debpal/OptiDamTool/actions/workflows/testing.yml) 
-![Read the Docs](https://img.shields.io/readthedocs/OptiDamTool)
+![Read the Docs](https://img.shields.io/readthedocs/optidamtool)
+
 
 
 ![GitHub Release Date](https://img.shields.io/github/release-date/debpal/OptiDamTool)
