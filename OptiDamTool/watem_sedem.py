@@ -53,18 +53,18 @@ class WatemSedem:
             Built area           7            -2                  Infrastructure
             Bare ground          8            -4                  Pasture
             Snow/ice             9            -5                  Open water
+            Clouds               10           -5                  Open water
             Rangeland            11           -4                  Pasture
             ===================  ===========  ==================  =================
 
-            ¹Internal processing is handled within the function. "NA" stands for Not Applicable.
+            ¹Internal processing is handled within the function.
         '''
 
         lc_map = {
-            (1, 9): -5,
+            (1, 9, 10): -5,
             (2, ): -3,
             (7, ): -2,
             (4, 8, 11): -4
-
         }
 
         return lc_map
@@ -95,12 +95,14 @@ class WatemSedem:
             Crops                5            0.301
             Built area           7            0.22
             Bare ground          8            1
+            Snow/ice             9            0
+            Clouds               10           0
             Rangeland            11           0.374
             ===================  ===========  ==================
         '''
 
         lm_map = {
-            (1, ): 0,
+            (1, 9, 10): 0,
             (2, ): 0.013,
             (4, ): 0.105,
             (5, ): 0.301,
@@ -160,6 +162,53 @@ class WatemSedem:
         )
 
         return None
+
+    def dem_negative_to_zero(
+        self,
+        input_file: str,
+        output_file: str
+    ) -> float:
+        '''
+        Replaces negative DEM values with 0 and save the result to a new raster file.
+
+        Parameters
+        ----------
+        input_file : str
+            Path to the input DEM raster file.
+
+        output_file : str
+            Path to the output DEM raster file.
+
+        Returns
+        -------
+        float
+            Minimum value of the DEM for confirmation.
+        '''
+
+        # check static type of input variable origin
+        utility._validate_variable_origin_static_type(
+            vars_types=typing.get_type_hints(
+                obj=self.dem_negative_to_zero
+            ),
+            vars_values=locals()
+        )
+
+        # Convert DEM negative values to zero
+        with rasterio.open(input_file) as input_raster:
+            raster_profile = input_raster.profile.copy()
+            dem_array = input_raster.read(1)
+            mask_array = (dem_array < 0) & (dem_array != input_raster.nodata)
+            dem_array[mask_array] = 0
+            with rasterio.open(output_file, 'w', **raster_profile) as output_raster:
+                output_raster.write(dem_array, 1)
+
+        # DEM minimum
+        raster_stats = self.raster.statistics_summary(
+            raster_file=output_file
+        )
+        output = float(raster_stats['Minimum'])
+
+        return output
 
     def dem_to_stream(
         self,
@@ -559,8 +608,8 @@ class WatemSedem:
         output_file : str
             Path to the output raster file.
 
-        dtype : str, optional
-            Data type of the output raster. Default is 'int16'.
+        buffer_length : float, optional
+            Distance to expand the bounding box on all sides. Default is 0.
 
         nodata : float, optional
             NoData value of the output raster. Default is -9999.
@@ -764,7 +813,7 @@ class WatemSedem:
     def raster_constant_extension(
         self,
         input_file: str,
-        constant_value: float,
+        constant_value: int | float,
         region_file: str,
         output_file: str,
         fill_value: int | float = 0,
@@ -903,7 +952,8 @@ class WatemSedem:
         # read the region array
         with rasterio.open(region_file) as input_region:
             region_profile = input_region.profile
-            nodata_array = input_region.read(1) == region_profile['nodata']
+            nodata = region_profile['nodata']
+            nodata_array = input_region.read(1) == nodata
         # k-factor raster array and unit conversion
         with rasterio.open(k_file) as input_k:
             k_array = k_multiplier * input_k.read(1)
@@ -912,7 +962,7 @@ class WatemSedem:
             r_array = input_r.read(1)
         # multiplication of K and R facotrs
         kr_array = k_array * r_array
-        kr_array[nodata_array] = region_profile['nodata']
+        kr_array[nodata_array] = nodata
         # saving K-factor array
         kr_array = kr_array.round().astype('int16')
         region_profile['dtype'] = 'int16'

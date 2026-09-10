@@ -7,6 +7,7 @@ import json
 import typing
 import tempfile
 import os
+import rasterio
 from . import utility
 
 
@@ -320,10 +321,18 @@ class Analysis:
             # linear scaling of raster
             raster.value_scale_and_offset(
                 input_file=os.path.join(tmp_dir, 't2.tif'),
-                output_file=output_file,
+                output_file=os.path.join(tmp_dir, 't3.tif'),
                 scale=scale,
                 offset=offset
             )
+            # Apply compression
+            with rasterio.open(os.path.join(tmp_dir, 't3.tif')) as input_raster:
+                raster_profile = input_raster.profile
+                raster_profile['compress'] = 'lzw'
+                raster_array = input_raster.read(1)
+                # saving output raster
+                with rasterio.open(output_file, mode='w', **raster_profile) as output_raster:
+                    output_raster.write(raster_array, 1)
 
         output = 'All geoprocessing steps are complete'
 
