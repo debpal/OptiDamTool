@@ -16,7 +16,8 @@ authors = [
 dependencies = [
     "GeoAnalyze",
     "beautifulsoup4",
-    "Platypus-opt"
+    "Platypus-opt",
+    "affine==2.4.0"
 ]
 readme = "README.md"
 requires-python = ">=3.10"

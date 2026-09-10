@@ -3,3 +3,4 @@ pytest-cov
 GeoAnalyze
 beautifulsoup4
 Platypus-opt
+affine==2.4.0
